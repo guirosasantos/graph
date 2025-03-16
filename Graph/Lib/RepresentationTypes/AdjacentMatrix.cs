@@ -1,4 +1,4 @@
-namespace Lib;
+namespace Lib.RepresentationTypes;
 
 public sealed record AdjacentMatrixNode(
     Node OriginNode,

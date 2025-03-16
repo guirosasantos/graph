@@ -1,6 +1,6 @@
-namespace Lib;
+namespace Lib.RepresentationTypes;
 
 public sealed record AdjacentListNode(
-    Node CurrentNode,
+    Node IndexNode,
     List<Node> AdjacentNodes
 );
