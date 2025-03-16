@@ -239,7 +239,9 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         if (!GraphAlreadyHasNode(origin, out _) || !GraphAlreadyHasNode(destination, out _))
             return -1;
 
-        return GetNode(origin).Edges.First(edge => edge.To.Label == LabelNode(destination)).Weight;
+        var edge = GetNode(origin).Edges.FirstOrDefault(edge => edge.To.Label == LabelNode(destination));
+
+        return edge == null ? -1 : edge.Weight;
     }
 
     public List<Node> GetAdjacentNodes(int index)
