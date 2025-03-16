@@ -115,7 +115,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
     public void PrintGraph()
     {
-        Console.WriteLine("index | label | list of adjacent nodes");
+        Console.WriteLine("index | label | nós adjacentes");
 
         switch (GraphType)
         {
