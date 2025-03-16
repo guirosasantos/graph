@@ -122,7 +122,7 @@ static Graph CreateGraph(Graph? programGraph)
 
     Console.WriteLine("Escolha o tipo de representação:");
     Console.WriteLine("1 - Lista de Adjacência");
-    Console.WriteLine("2 - Matriz (não implementado)");
+    Console.WriteLine("2 - Matriz Adjacente");
     Console.Write("Tipo: ");
 
     GraphType graphType = int.TryParse(Console.ReadLine(), out int type) && type == 2

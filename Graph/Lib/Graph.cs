@@ -6,7 +6,7 @@ namespace Lib;
 public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 {
     public List<AdjacentListNode> AdjacentList { get; private set; } = [];
-    //public List<AdjacentMatrixNode> AdjacentMatrix { get; private set; } = [];
+    public List<AdjacentMatrixNode> AdjacentMatrix { get; private set; } = [];
     public bool IsDirected { get; private init; } = isDirected;
     public bool IsWeighted { get; private init; } = isWeighted;
     public GraphType GraphType { get; private init; } = graphType;
@@ -26,7 +26,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         return GraphType switch
         {
             GraphType.AdjacentList => AdjacentList.Any(node => node.IndexNode.Label == label),
-            GraphType.Matrix => throw new NotImplementedException(),
+            GraphType.Matrix => AdjacentMatrix.Any(node => node.OriginNode.Label == label),
             _ => throw new NotImplementedException()
         };
     }
@@ -38,12 +38,17 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         var exists = GraphType switch
         {
             GraphType.AdjacentList => AdjacentList[index] != null,
-            GraphType.Matrix => throw new NotImplementedException(),
+            GraphType.Matrix => AdjacentMatrix[index] != null,
             _ => throw new NotImplementedException()
         };
 
         if (exists)
-            label = AdjacentList[index].IndexNode.Label;
+        {
+            if (GraphType == GraphType.Matrix)
+                label = AdjacentMatrix[index].OriginNode.Label;
+            else
+                label = AdjacentList[index].IndexNode.Label;
+        }
 
         return exists;
     }
@@ -56,12 +61,38 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 AdjacentList.Add(new AdjacentListNode(node, []));
                 break;
             case GraphType.Matrix:
-                throw new NotImplementedException();
+                AddNewNodeToMatrix(node);
+                break;
             default:
                 throw new NotImplementedException();
         }
 
         return true;
+    }
+
+    private void AddNewNodeToMatrix(Node node)
+    {
+        var edges = new List<AdjacentMatrixEdge>();
+
+        for (int i = 0; i < AdjacentMatrix.Count; i++)
+            edges.Add(new AdjacentMatrixEdge(AdjacentMatrix[i].OriginNode, false));
+
+        AdjacentMatrix.Add(new AdjacentMatrixNode(node, edges));
+
+        RecalculateMatrixEdges();
+    }
+
+    private void RecalculateMatrixEdges()
+    {
+        var lastAddedNode = AdjacentMatrix.LastOrDefault()?.OriginNode;
+
+        if (lastAddedNode == null)
+            return;
+
+        AdjacentMatrix.ForEach(nodeRelation =>
+        {
+            nodeRelation.Edges.Add(new AdjacentMatrixEdge(lastAddedNode, false));
+        });
     }
 
     public bool RemoveNode(int index)
@@ -75,7 +106,8 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 RemoveNodeFromAdjacentList(label);
                 break;
             case GraphType.Matrix:
-                throw new NotImplementedException();
+                RemoveNodeFromAdjacentMatrix(label);
+                break;
             default:
                 throw new NotImplementedException();
         }
@@ -99,31 +131,46 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
     }
 
     private void RemoveNodeFromIndex(string label)
+        => AdjacentList.RemoveAll(node => node.IndexNode.Label == label);
+
+    private void RemoveNodeFromAdjacentMatrix(string label)
     {
-        AdjacentList.RemoveAll(node => node.IndexNode.Label == label);
+        RemoveNodeFromAdjacentMatrixEdges(label);
+        RemoveNodeFromMatrixIndex(label);
     }
+
+    private void RemoveNodeFromAdjacentMatrixEdges(string label)
+    {
+        AdjacentMatrix.ForEach(node =>
+        {
+            node.Edges.RemoveAll(edge => edge.DestinationNode.Label == label);
+            node.OriginNode.Edges.RemoveAll(edge => edge.To.Label == label);
+        });
+    }
+
+    private void RemoveNodeFromMatrixIndex(string label)
+        => AdjacentMatrix.RemoveAll(node => node.OriginNode.Label == label);
 
     public string LabelNode(int index)
     {
         return GraphType switch
         {
             GraphType.AdjacentList => AdjacentList[index].IndexNode.Label,
-            GraphType.Matrix => throw new NotImplementedException(),
+            GraphType.Matrix => AdjacentMatrix[index].OriginNode.Label,
             _ => throw new NotImplementedException()
         };
     }
 
     public void PrintGraph()
     {
-        Console.WriteLine("index | label | nós adjacentes");
-
         switch (GraphType)
         {
             case GraphType.AdjacentList:
                 PrintAdjacentList();
                 break;
             case GraphType.Matrix:
-                throw new NotImplementedException("Matrix graph printing not implemented yet");
+                PrintAdjacentMatrix();
+                break;
             default:
                 throw new NotImplementedException("Unknown graph type");
         }
@@ -131,12 +178,42 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
     private void PrintAdjacentList()
     {
+        Console.WriteLine("index | label | nós adjacentes");
+
         for (int i = 0; i < AdjacentList.Count; i++)
         {
             var node = AdjacentList[i];
             var adjacentLabels = string.Join(", ", node.AdjacentNodes.Select(n => n.Label));
 
             Console.WriteLine($"{i} - {node.IndexNode.Label} - [{adjacentLabels}]");
+        }
+    }
+
+    private void PrintAdjacentMatrix()
+    {
+        if (AdjacentMatrix.Count == 0)
+        {
+            Console.WriteLine("A matriz está vazia.");
+            return;
+        }
+
+        Console.Write("   ");
+        for (int i = 0; i < AdjacentMatrix.Count; i++)
+        {
+            Console.Write($" {AdjacentMatrix[i].OriginNode.Label}");
+        }
+        Console.WriteLine();
+
+        for (int i = 0; i < AdjacentMatrix.Count; i++)
+        {
+            Console.Write($"{AdjacentMatrix[i].OriginNode.Label}  ");
+
+            for (int j = 0; j < AdjacentMatrix[i].Edges.Count; j++)
+            {
+                Console.Write($" {(AdjacentMatrix[i].Edges[j].IsConnected ? 1 : 0)}");
+            }
+
+            Console.WriteLine();
         }
     }
 
@@ -159,6 +236,9 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         if (!addEdgesResult)
             return false;
 
+        if (GraphType == GraphType.Matrix)
+            return AddToAdjacentMatrix(origin, destination);
+
         return AddToAdjacentList(origin, destination);
     }
 
@@ -167,7 +247,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         return GraphType switch
         {
             GraphType.AdjacentList => AdjacentList[index].IndexNode,
-            GraphType.Matrix => throw new NotImplementedException(),
+            GraphType.Matrix => AdjacentMatrix[index].OriginNode,
             _ => throw new NotImplementedException()
         };
     }
@@ -191,6 +271,20 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         return true;
     }
 
+    private bool AddToAdjacentMatrix(int origin, int destination)
+    {
+        if (IsDirected)
+        {
+            AdjacentMatrix[origin].Edges[destination] = new AdjacentMatrixEdge(AdjacentMatrix[destination].OriginNode, true);
+            return true;
+        }
+
+        AdjacentMatrix[origin].Edges[destination] = new AdjacentMatrixEdge(AdjacentMatrix[destination].OriginNode, true);
+        AdjacentMatrix[destination].Edges[origin] = new AdjacentMatrixEdge(AdjacentMatrix[origin].OriginNode, true);
+
+        return true;
+    }
+
     public bool RemoveEdge(int origin, int destination)
     {
         if (!GraphAlreadyHasNode(origin, out _) || !GraphAlreadyHasNode(destination, out _))
@@ -203,6 +297,9 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         if (!removeEdgesResult)
             return false;
+
+        if (GraphType == GraphType.Matrix)
+            return RemoveFromAdjacentMatrix(origin, destination);
 
         return RemoveFromAdjacentList(origin, destination);
     }
@@ -222,6 +319,20 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         AdjacentList[origin].AdjacentNodes.RemoveAll(node => node.Label == AdjacentList[destination].IndexNode.Label);
         AdjacentList[destination].AdjacentNodes.RemoveAll(node => node.Label == AdjacentList[origin].IndexNode.Label);
+
+        return true;
+    }
+
+    private bool RemoveFromAdjacentMatrix(int origin, int destination)
+    {
+        if (IsDirected)
+        {
+            AdjacentMatrix[origin].Edges[destination] = new AdjacentMatrixEdge(AdjacentMatrix[destination].OriginNode, false);
+            return true;
+        }
+
+        AdjacentMatrix[origin].Edges[destination] = new AdjacentMatrixEdge(AdjacentMatrix[destination].OriginNode, false);
+        AdjacentMatrix[destination].Edges[origin] = new AdjacentMatrixEdge(AdjacentMatrix[origin].OriginNode, false);
 
         return true;
     }
@@ -248,6 +359,14 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
     {
         if (!GraphAlreadyHasNode(index, out _))
             return [];
+
+        if (GraphType == GraphType.Matrix)
+        {
+            return AdjacentMatrix[index].Edges
+                .Where(edge => edge.IsConnected)
+                .Select(edge => edge.DestinationNode)
+                .ToList();
+        }
 
         return AdjacentList[index].AdjacentNodes;
     }
