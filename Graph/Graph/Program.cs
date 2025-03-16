@@ -20,24 +20,27 @@ while (!exit)
             InsertNode(graph);
             break;
         case 3:
-            RemoveNode(graph);
+            InsertNodeBatch(graph);
             break;
         case 4:
-            AddEdge(graph);
+            RemoveNode(graph);
             break;
         case 5:
-            RemoveEdge(graph);
+            AddEdge(graph);
             break;
         case 6:
-            CheckEdgeExists(graph);
+            RemoveEdge(graph);
             break;
         case 7:
-            GetEdgeWeight(graph);
+            CheckEdgeExists(graph);
             break;
         case 8:
-            GetAdjacentNodes(graph);
+            GetEdgeWeight(graph);
             break;
         case 9:
+            GetAdjacentNodes(graph);
+            break;
+        case 10:
             PrintGraph(graph);
             break;
         case 0:
@@ -62,13 +65,14 @@ static void PrintMenu(Graph? programGraph)
     PrintTitle(programGraph);
     Console.WriteLine("1 - Criar um novo grafo");
     Console.WriteLine("2 - Inserir nó");
-    Console.WriteLine("3 - Remover nó");
-    Console.WriteLine("4 - Adicionar aresta");
-    Console.WriteLine("5 - Remover aresta");
-    Console.WriteLine("6 - Verificar se aresta existe");
-    Console.WriteLine("7 - Obter peso da aresta");
-    Console.WriteLine("8 - Obter nós adjacentes");
-    Console.WriteLine("9 - Imprimir grafo");
+    Console.WriteLine("3 - Inserir nós em lote");
+    Console.WriteLine("4 - Remover nó");
+    Console.WriteLine("5 - Adicionar aresta");
+    Console.WriteLine("6 - Remover aresta");
+    Console.WriteLine("7 - Verificar se aresta existe");
+    Console.WriteLine("8 - Obter peso da aresta");
+    Console.WriteLine("9 - Obter nós adjacentes");
+    Console.WriteLine("10 - Imprimir grafo");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
 }
@@ -148,6 +152,37 @@ static void InsertNode(Graph? graph)
         Console.WriteLine($"Nó '{label}' inserido com sucesso!");
     else
         Console.WriteLine($"Erro: Não foi possível inserir o nó '{label}'. Talvez ele já exista.");
+}
+
+static void InsertNodeBatch(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.Write("\nDigite os rótulos dos nós a serem inseridos (separados por vírgula): ");
+    var labels = Console.ReadLine()?.Split(',');
+
+    if (labels == null || labels.Length == 0)
+    {
+        Console.WriteLine("Erro: Rótulos inválidos.");
+        return;
+    }
+
+    int count = 0;
+    foreach (var label in labels)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+            continue;
+
+        bool success = graph.InsertNode(label.Trim());
+        if (success)
+            count++;
+    }
+
+    Console.WriteLine($"{count} nós inseridos com sucesso!");
 }
 
 static void RemoveNode(Graph? graph)
