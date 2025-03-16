@@ -23,24 +23,27 @@ while (!exit)
             InsertNodeBatch(graph);
             break;
         case 4:
-            RemoveNode(graph);
+            AddPresetNodes(graph);
             break;
         case 5:
-            AddEdge(graph);
+            RemoveNode(graph);
             break;
         case 6:
-            RemoveEdge(graph);
+            AddEdge(graph);
             break;
         case 7:
-            CheckEdgeExists(graph);
+            RemoveEdge(graph);
             break;
         case 8:
-            GetEdgeWeight(graph);
+            CheckEdgeExists(graph);
             break;
         case 9:
-            GetAdjacentNodes(graph);
+            GetEdgeWeight(graph);
             break;
         case 10:
+            GetAdjacentNodes(graph);
+            break;
+        case 11:
             PrintGraph(graph);
             break;
         case 0:
@@ -66,13 +69,14 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("1 - Criar um novo grafo");
     Console.WriteLine("2 - Inserir nó");
     Console.WriteLine("3 - Inserir nós em lote");
-    Console.WriteLine("4 - Remover nó");
-    Console.WriteLine("5 - Adicionar aresta");
-    Console.WriteLine("6 - Remover aresta");
-    Console.WriteLine("7 - Verificar se aresta existe");
-    Console.WriteLine("8 - Obter peso da aresta");
-    Console.WriteLine("9 - Obter nós adjacentes");
-    Console.WriteLine("10 - Imprimir grafo");
+    Console.WriteLine("4 - Inserir nós pré-definidos");
+    Console.WriteLine("5 - Remover nó");
+    Console.WriteLine("6 - Adicionar aresta");
+    Console.WriteLine("7 - Remover aresta");
+    Console.WriteLine("8 - Verificar se aresta existe");
+    Console.WriteLine("9 - Obter peso da aresta");
+    Console.WriteLine("10 - Obter nós adjacentes");
+    Console.WriteLine("11 - Imprimir grafo");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
 }
@@ -183,6 +187,175 @@ static void InsertNodeBatch(Graph? graph)
     }
 
     Console.WriteLine($"{count} nós inseridos com sucesso!");
+}
+
+static void AddPresetNodes(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.WriteLine("\nInserindo nós pré-definidos...");
+    graph.InsertNode("A");
+    graph.InsertNode("B");
+    graph.InsertNode("C");
+    graph.InsertNode("D");
+    graph.InsertNode("E");
+    graph.InsertNode("F");
+
+    Console.WriteLine("Nós inseridos com sucesso!");
+
+    Console.WriteLine("\nAdicionando arestas...");
+
+    if (graph.IsWeighted)
+    {
+        AddPresetWeightedEdges(graph);
+        Console.WriteLine("Arestas ponderadas adicionadas com sucesso!");
+        return;
+    }
+
+    AddPresetUnweightedEdges(graph);
+    Console.WriteLine("Arestas não ponderadas adicionadas com sucesso!");
+}
+
+static void AddPresetWeightedEdges(Graph graph)
+{
+    if (graph.IsDirected)
+    {
+        AddPresetWeightedDirectedEdges(graph);
+        return;
+    }
+
+    AddPresetWeightedUndirectedEdges(graph);
+}
+
+static void AddPresetWeightedDirectedEdges(Graph graph)
+{
+    //A
+    graph.AddEdge(0, 1, 1);
+    graph.AddEdge(0, 2, 2);
+    graph.AddEdge(0, 3, 3);
+    graph.AddEdge(0, 4, 4);
+    graph.AddEdge(0, 5, 5);
+
+    //B
+    graph.AddEdge(1, 0, 6);
+    graph.AddEdge(1, 2, 7);
+    graph.AddEdge(1, 5, 8);
+
+    //C
+    graph.AddEdge(2, 0, 9);
+    graph.AddEdge(2, 1, 10);
+    graph.AddEdge(2, 3, 11);
+
+    //D
+    graph.AddEdge(3, 0, 12);
+    graph.AddEdge(3, 2, 13);
+    graph.AddEdge(3, 4, 14);
+
+    //E
+    graph.AddEdge(4, 0, 15);
+    graph.AddEdge(4, 3, 16);
+    graph.AddEdge(4, 5, 17);
+
+    //F
+    graph.AddEdge(5, 0, 18);
+    graph.AddEdge(5, 2, 19);
+    graph.AddEdge(5, 4, 20);
+}
+
+static void AddPresetWeightedUndirectedEdges(Graph graph)
+{
+    //A
+    graph.AddEdge(0, 1, 1);
+    graph.AddEdge(0, 2, 2);
+    graph.AddEdge(0, 3, 3);
+    graph.AddEdge(0, 4, 4);
+    graph.AddEdge(0, 5, 5);
+
+    //B
+    graph.AddEdge(1, 2, 6);
+    graph.AddEdge(1, 5, 7);
+
+    //C
+    graph.AddEdge(2, 3, 8);
+
+    //D
+    graph.AddEdge(3, 4, 9);
+
+    //E
+    graph.AddEdge(4, 5, 10);
+}
+
+static void AddPresetUnweightedEdges(Graph graph)
+{
+    if (graph.IsDirected)
+    {
+        AddPresetDirectedEdges(graph);
+        return;
+    }
+
+    AddPresetUndirectedEdges(graph);
+}
+
+static void AddPresetUndirectedEdges(Graph graph)
+{
+    //A
+    graph.AddEdge(0, 1);
+    graph.AddEdge(0, 2);
+    graph.AddEdge(0, 3);
+    graph.AddEdge(0, 4);
+    graph.AddEdge(0, 5);
+
+    //B
+    graph.AddEdge(1, 0);
+    graph.AddEdge(1, 2);
+    graph.AddEdge(1, 5);
+
+    //C
+    graph.AddEdge(2, 0);
+    graph.AddEdge(2, 1);
+    graph.AddEdge(2, 3);
+
+    //D
+    graph.AddEdge(3, 0);
+    graph.AddEdge(3, 2);
+    graph.AddEdge(3, 4);
+
+    //E
+    graph.AddEdge(4, 0);
+    graph.AddEdge(4, 3);
+    graph.AddEdge(4, 5);
+
+    //F
+    graph.AddEdge(5, 0);
+    graph.AddEdge(5, 2);
+    graph.AddEdge(5, 4);
+}
+
+static void AddPresetDirectedEdges(Graph graph)
+{
+    //A
+    graph.AddEdge(0, 1);
+    graph.AddEdge(0, 2);
+    graph.AddEdge(0, 3);
+    graph.AddEdge(0, 4);
+    graph.AddEdge(0, 5);
+
+    //B
+    graph.AddEdge(1, 2);
+    graph.AddEdge(1, 5);
+
+    //C
+    graph.AddEdge(2, 3);
+
+    //D
+    graph.AddEdge(3, 4);
+
+    //E
+    graph.AddEdge(4, 5);
 }
 
 static void RemoveNode(Graph? graph)
