@@ -1,5 +1,6 @@
-﻿using System.Globalization;
+using System.Globalization;
 using Lib.Enuns;
+using Lib.Extensions;
 using Lib.RepresentationTypes;
 
 namespace Lib;
@@ -371,7 +372,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         return AdjacentList[index].AdjacentNodes;
     }
-    
+
     public void DepthSearch(int origin)
     {
         if (!GraphAlreadyHasNode(origin, out _))
@@ -411,7 +412,59 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             }
         }
     }
-    
+
+    public void BreadthFirstSearch(in int origin)
+    {
+        Node originNode;
+
+        try
+        {
+            originNode = GetNode(origin);
+        }
+        catch (IndexOutOfRangeException)
+        {
+            Console.WriteLine("O nó de origem não existe no grafo.");
+            return;
+        }
+
+        var auxiliaryQueue = new Queue<Node>();
+        var visited = new List<Node>();
+
+        auxiliaryQueue.Enqueue(originNode);
+        visited.Add(originNode);
+
+        while (auxiliaryQueue.Count != 0)
+        {
+            var currentNode = auxiliaryQueue.Dequeue();
+
+            var currentNodeIndex = GraphFromFileExtension.GetIndex(currentNode.Label);
+
+            var adjacentNodes = GetAdjacentNodes(currentNodeIndex).OrderBy(node => node.Label);
+
+            TryAddNodesToDataStructures(adjacentNodes, visited, auxiliaryQueue);
+        }
+
+        Console.WriteLine("Caminho percorrido:");
+        foreach (var node in visited)
+        {
+            Console.WriteLine($"Visitando: {node.Label}");
+        }
+
+        static void TryAddNodesToDataStructures(IEnumerable<Node> adjacentNodes, List<Node> visited,
+            Queue<Node> auxiliaryQueue)
+        {
+            foreach (var node in adjacentNodes)
+            {
+                if (!visited.Contains(node))
+                {
+                    visited.Add(node);
+                    auxiliaryQueue.Enqueue(node);
+                }
+            }
+        }
+    }
+
+
     public void Dijkstra(int origin)
     {
         if (!IsWeighted)

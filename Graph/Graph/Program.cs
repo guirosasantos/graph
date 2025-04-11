@@ -54,6 +54,9 @@ while (!exit)
             DepthSearch(graph);
             break;
         case 14:
+            BreadthFirstSearch(graph);
+            break;
+        case 15:
             RunDijkstra(graph);
             break;
         case 99:
@@ -79,20 +82,21 @@ while (!exit)
 static void PrintMenu(Graph? programGraph)
 {
     PrintTitle(programGraph);
-    Console.WriteLine("1 - Criar um novo grafo");
-    Console.WriteLine("2 - Inserir nó");
-    Console.WriteLine("3 - Inserir nós em lote");
-    Console.WriteLine("4 - Inserir nós pré-definidos");
-    Console.WriteLine("5 - Remover nó");
-    Console.WriteLine("6 - Adicionar aresta");
-    Console.WriteLine("7 - Remover aresta");
-    Console.WriteLine("8 - Verificar se aresta existe");
-    Console.WriteLine("9 - Obter peso da aresta");
+    Console.WriteLine("01 - Criar um novo grafo");
+    Console.WriteLine("02 - Inserir nó");
+    Console.WriteLine("03 - Inserir nós em lote");
+    Console.WriteLine("04 - Inserir nós pré-definidos");
+    Console.WriteLine("05 - Remover nó");
+    Console.WriteLine("06 - Adicionar aresta");
+    Console.WriteLine("07 - Remover aresta");
+    Console.WriteLine("08 - Verificar se aresta existe");
+    Console.WriteLine("09 - Obter peso da aresta");
     Console.WriteLine("10 - Obter nós adjacentes");
     Console.WriteLine("11 - Imprimir grafo");
     Console.WriteLine("12 - Ler grafo de arquivo");
     Console.WriteLine("13 - Executar busca em profundidade");
-    Console.WriteLine("14 - Executar algoritmo de Dijkstra");
+    Console.WriteLine("14 - Executar busca em largura");
+    Console.WriteLine("15 - Executar algoritmo de Dijkstra");
     Console.WriteLine("99 - Remover grafo atual");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
@@ -658,3 +662,22 @@ static string GetProjectDirectory(string currentDirectory)
 
 static bool IsInDebugMode()
     => AppDomain.CurrentDomain.FriendlyName.Contains("vshost");
+
+static void BreadthFirstSearch(Graph graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.Write("\nDigite o índice do nó de origem para a busca em largura: ");
+    if (!int.TryParse(Console.ReadLine(), out int origin))
+    {
+        Console.WriteLine("Erro: Índice de origem inválido.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando busca em largura...");
+    graph.BreadthFirstSearch(origin);
+}

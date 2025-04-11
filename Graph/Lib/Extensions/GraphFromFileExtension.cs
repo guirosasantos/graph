@@ -68,8 +68,8 @@ public static class GraphFromFileExtension
         return edges;
     }
 
-    private static int GetIndex(string node)
-        => node.ToUpper() switch
+    public static int GetIndex(string label)
+        => label.ToUpper() switch
         {
             "A" => 0,
             "B" => 1,
