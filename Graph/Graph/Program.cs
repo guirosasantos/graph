@@ -1,5 +1,7 @@
-﻿using Lib;
+﻿using System.Threading.Tasks;
+using Lib;
 using Lib.Enuns;
+using Lib.Extensions;
 
 Graph? graph = null;
 bool exit = false;
@@ -45,6 +47,9 @@ while (!exit)
             break;
         case 11:
             PrintGraph(graph);
+            break;
+        case 12:
+            graph = await ReadGraphFromFileAsync();
             break;
         case 0:
             exit = true;
@@ -551,4 +556,49 @@ static void PrintGraph(Graph? graph)
 
     Console.WriteLine("\n--- Estrutura do Grafo ---");
     graph.PrintGraph();
+}
+
+static async Task<Graph> ReadGraphFromFileAsync()
+{
+    bool isDirected = false;
+    bool isWeighted = false;
+
+    Console.WriteLine("\n--- Leitura de grafo a partir de arquivo ---");
+
+    Console.WriteLine("Digite o tipo do grafo: \n 0- Direcionado \n 1- Não direcionado");
+    var type = Console.ReadLine();
+    isDirected = type == "0";
+
+    Console.WriteLine("Digite o tipo de grafo: \n 0- Ponderado \n 1- Não ponderado");
+    type = Console.ReadLine();
+    isWeighted = type == "0";
+
+    Console.WriteLine("Escolha o tipo de representação:");
+    Console.WriteLine("1 - Lista de Adjacência");
+    Console.WriteLine("2 - Matriz Adjacente");
+    Console.Write("Tipo: ");
+
+    GraphType graphType = int.TryParse(Console.ReadLine(), out int type2) && type2 == 2
+        ? GraphType.Matrix
+        : GraphType.AdjacentList;
+
+    var filePath = GetFilePath(isDirected, isWeighted);
+
+    return await GraphFromFileExtension.FromFileAsync(filePath, isDirected, isWeighted, graphType);
+}
+
+static string GetFilePath(bool isDirected, bool isWeighted)
+{
+    var filePath = "../../../../Files/";
+
+    filePath += isDirected ? "Direcionado/" : "NaoDirecionado/";
+    filePath += isWeighted ? "Ponderado.csv" : "NaoPonderado.csv";
+
+    if (!File.Exists(filePath))
+    {
+        Console.WriteLine($"Erro: O arquivo '{filePath}' não foi encontrado.");
+        return string.Empty;
+    }
+
+    return filePath;
 }
