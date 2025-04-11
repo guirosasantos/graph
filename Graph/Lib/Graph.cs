@@ -1,4 +1,5 @@
-﻿using Lib.Enuns;
+﻿using System.Globalization;
+using Lib.Enuns;
 using Lib.RepresentationTypes;
 
 namespace Lib;
@@ -408,6 +409,109 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 if (!visited.Contains(node))
                     stack.Push(node);
             }
+        }
+    }
+    
+    public void Dijkstra(int origin)
+    {
+        if (!IsWeighted)
+        {
+            Console.WriteLine("Erro: O algoritmo de Dijkstra requer um grafo ponderado.");
+            return;
+        }
+
+        if (!GraphAlreadyHasNode(origin, out _))
+        {
+            Console.WriteLine("O nó de origem não existe no grafo.");
+            return;
+        }
+
+        // Verificar se há pesos negativos no grafo
+        var hasNegativeWeights = GraphType switch
+        {
+            GraphType.AdjacentList => AdjacentList.Any(node => node.IndexNode.Edges.Any(edge => edge.Weight < 0)),
+            GraphType.Matrix => AdjacentMatrix.Any(node => node.OriginNode.Edges.Any(edge => edge.Weight < 0)),
+            _ => throw new NotImplementedException()
+        };
+
+        if (hasNegativeWeights)
+        {
+            Console.WriteLine("Erro: O algoritmo de Dijkstra não suporta arestas com pesos negativos.");
+            return;
+        }
+
+        var distances = new Dictionary<Node, int>();
+        var previous = new Dictionary<Node, Node?>();
+        var priorityQueue = new SortedSet<(int Distance, Node Node)>(Comparer<(int, Node)>.Create((a, b) =>
+        {
+            int compare = a.Item1.CompareTo(b.Item1);
+            return compare == 0 ? string.Compare(a.Item2.Label, b.Item2.Label, StringComparison.Ordinal) : compare;
+        }));
+
+        var originNode = GetNode(origin);
+
+        // Inicializar todos os vértices
+        foreach (var node in GraphType == GraphType.AdjacentList
+            ? AdjacentList.Select(n => n.IndexNode)
+            : AdjacentMatrix.Select(n => n.OriginNode))
+        {
+            distances[node] = int.MaxValue;
+            previous[node] = null;
+        }
+
+        distances[originNode] = 0;
+        priorityQueue.Add((0, originNode));
+
+        while (priorityQueue.Count > 0)
+        {
+            // Obter o nó com a menor distância
+            var (currentDistance, currentNode) = priorityQueue.Min;
+            priorityQueue.Remove(priorityQueue.Min);
+
+            // Para cada vizinho do nó atual
+            var neighbors = GraphType switch
+            {
+                GraphType.AdjacentList => currentNode.Edges,
+                GraphType.Matrix => AdjacentMatrix
+                    .First(n => n.OriginNode == currentNode)
+                    .Edges
+                    .Where(e => e.IsConnected)
+                    .Select(e => new Edge(currentNode, e.DestinationNode,
+                        GetEdgeWeight(AdjacentMatrix.IndexOf(AdjacentMatrix.First(n => n.OriginNode == currentNode)),
+                            AdjacentMatrix.IndexOf(AdjacentMatrix.First(n => n.OriginNode == e.DestinationNode))))),
+                _ => throw new NotImplementedException()
+            };
+
+            foreach (var edge in neighbors)
+            {
+                var neighbor = edge.To;
+                var newDistance = currentDistance + edge.Weight;
+
+                if (newDistance < distances[neighbor])
+                {
+                    // Atualizar a distância e o vértice anterior
+                    priorityQueue.Remove((distances[neighbor], neighbor));
+                    distances[neighbor] = newDistance;
+                    previous[neighbor] = currentNode;
+                    priorityQueue.Add((newDistance, neighbor));
+                }
+            }
+        }
+
+        // Imprimir os resultados
+        Console.WriteLine("Menores distâncias a partir do nó de origem:");
+        foreach (var node in distances.Keys)
+        {
+            var path = new Stack<string>();
+            var current = node;
+
+            while (current != null)
+            {
+                path.Push(current.Label);
+                current = previous[current];
+            }
+
+            Console.WriteLine($"Nó: {node.Label}, Distância: {distances[node]}, Caminho: {string.Join(" -> ", path)}");
         }
     }
 }

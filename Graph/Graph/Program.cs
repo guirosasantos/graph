@@ -53,6 +53,9 @@ while (!exit)
         case 13:
             DepthSearch(graph);
             break;
+        case 14:
+            RunDijkstra(graph);
+            break;
         case 99:
             graph = null;
             break;
@@ -89,6 +92,7 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("11 - Imprimir grafo");
     Console.WriteLine("12 - Ler grafo de arquivo");
     Console.WriteLine("13 - Executar busca em profundidade");
+    Console.WriteLine("14 - Executar algoritmo de Dijkstra");
     Console.WriteLine("99 - Remover grafo atual");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
@@ -583,6 +587,31 @@ static void DepthSearch(Graph? graph)
 
     Console.WriteLine("\nExecutando busca em profundidade...");
     graph.DepthSearch(origin);
+}
+
+static void RunDijkstra(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    if (!graph.IsWeighted)
+    {
+        Console.WriteLine("Erro: O algoritmo de Dijkstra requer um grafo ponderado.");
+        return;
+    }
+
+    Console.Write("\nDigite o índice do nó de origem: ");
+    if (!int.TryParse(Console.ReadLine(), out int origin))
+    {
+        Console.WriteLine("Erro: Índice de origem inválido.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando o algoritmo de Dijkstra...");
+    graph.Dijkstra(origin);
 }
 
 static async Task<Graph> ReadGraphFromFileAsync()
