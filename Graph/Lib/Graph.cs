@@ -370,4 +370,44 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         return AdjacentList[index].AdjacentNodes;
     }
+    
+    public void DepthSearch(int origin)
+    {
+        if (!GraphAlreadyHasNode(origin, out _))
+        {
+            Console.WriteLine("O nó de origem não existe no grafo.");
+            return;
+        }
+
+        var originNode = GetNode(origin);
+        var visited = new HashSet<Node>();
+        var stack = new Stack<Node>();
+        stack.Push(originNode);
+
+        Console.WriteLine("Caminho percorrido:");
+
+        while (stack.Count > 0)
+        {
+            var currentNode = stack.Pop();
+
+            if (visited.Contains(currentNode))
+                continue;
+
+            visited.Add(currentNode);
+            Console.WriteLine($"Visitando: {currentNode.Label}");
+
+            var adjacentNodes = GraphType switch
+            {
+                GraphType.AdjacentList => currentNode.Edges.Select(edge => edge.To),
+                GraphType.Matrix => GetAdjacentNodes(AdjacentList.IndexOf(AdjacentList.First(n => n.IndexNode == currentNode))),
+                _ => throw new NotImplementedException()
+            };
+
+            foreach (var node in adjacentNodes)
+            {
+                if (!visited.Contains(node))
+                    stack.Push(node);
+            }
+        }
+    }
 }

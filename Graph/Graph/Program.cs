@@ -51,6 +51,9 @@ while (!exit)
         case 12:
             graph = await ReadGraphFromFileAsync();
             break;
+        case 13:
+            DepthSearch(graph);
+            break;
         case 0:
             exit = true;
             Console.WriteLine("Saindo do programa. Até mais!");
@@ -83,6 +86,7 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("10 - Obter nós adjacentes");
     Console.WriteLine("11 - Imprimir grafo");
     Console.WriteLine("12 - Ler grafo de arquivo");
+    Console.WriteLine("13 - Executar busca em profundidade");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
 }
@@ -557,6 +561,25 @@ static void PrintGraph(Graph? graph)
 
     Console.WriteLine("\n--- Estrutura do Grafo ---");
     graph.PrintGraph();
+}
+
+static void DepthSearch(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.Write("\nDigite o índice do nó de origem para a busca em profundidade: ");
+    if (!int.TryParse(Console.ReadLine(), out int origin))
+    {
+        Console.WriteLine("Erro: Índice de origem inválido.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando busca em profundidade...");
+    graph.DepthSearch(origin);
 }
 
 static async Task<Graph> ReadGraphFromFileAsync()
