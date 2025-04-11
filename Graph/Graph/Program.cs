@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using Lib;
+﻿using Lib;
 using Lib.Enuns;
 using Lib.Extensions;
 
@@ -54,6 +53,9 @@ while (!exit)
         case 13:
             DepthSearch(graph);
             break;
+        case 99:
+            graph = null;
+            break;
         case 0:
             exit = true;
             Console.WriteLine("Saindo do programa. Até mais!");
@@ -87,6 +89,7 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("11 - Imprimir grafo");
     Console.WriteLine("12 - Ler grafo de arquivo");
     Console.WriteLine("13 - Executar busca em profundidade");
+    Console.WriteLine("99 - Remover grafo atual");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
 }
@@ -584,46 +587,28 @@ static void DepthSearch(Graph? graph)
 
 static async Task<Graph> ReadGraphFromFileAsync()
 {
-    bool isDirected = false;
-    bool isWeighted = false;
-
     Console.WriteLine("\n--- Leitura de grafo a partir de arquivo ---");
-
-    Console.WriteLine("Digite o tipo do grafo: \n 0- Direcionado \n 1- Não direcionado");
-    var type = Console.ReadLine();
-    isDirected = type == "0";
-
-    Console.WriteLine("Digite o tipo de grafo: \n 0- Ponderado \n 1- Não ponderado");
-    type = Console.ReadLine();
-    isWeighted = type == "0";
 
     Console.WriteLine("Escolha o tipo de representação:");
     Console.WriteLine("1 - Lista de Adjacência");
     Console.WriteLine("2 - Matriz Adjacente");
     Console.Write("Tipo: ");
 
-    GraphType graphType = int.TryParse(Console.ReadLine(), out int type2) && type2 == 2
+    GraphType graphType = int.TryParse(Console.ReadLine(), out int type) && type == 2
         ? GraphType.Matrix
         : GraphType.AdjacentList;
 
-    var filePath = GetFilePath(isDirected, isWeighted);
+    var filePath = GetFilePath();
 
-    return await GraphFromFileExtension.FromFileAsync(filePath, isDirected, isWeighted, graphType);
+    return await GraphFromFileExtension.FromFileAsync(filePath, graphType);
 }
 
-static string GetFilePath(bool isDirected, bool isWeighted)
+static string GetFilePath()
 {
     var currentDirectory = Directory.GetCurrentDirectory();
-    var projectDirectory = Directory.GetParent(currentDirectory)?.Parent?.Parent?.FullName!;
-    var filesDirectory = Path.Combine(projectDirectory, "Files");
-    
-    filesDirectory = isDirected
-        ? Path.Combine(filesDirectory, "Direcionado")
-        : Path.Combine(filesDirectory, "NaoDirecionado");
+    var projectDirectory = GetProjectDirectory(currentDirectory);
 
-    var filePath = isWeighted
-        ? $"{filesDirectory}\\\\Ponderado.csv"
-        : $"{filesDirectory}\\\\NaoPonderado.csv";
+    var filePath = $"{projectDirectory}\\Grafo.csv";
 
     if (!File.Exists(filePath))
     {
@@ -633,3 +618,14 @@ static string GetFilePath(bool isDirected, bool isWeighted)
 
     return filePath;
 }
+
+static string GetProjectDirectory(string currentDirectory)
+{
+    if (IsInDebugMode())
+        return Directory.GetParent(currentDirectory)?.Parent?.Parent?.FullName!;
+
+    return Directory.GetCurrentDirectory();
+}
+
+static bool IsInDebugMode()
+    => AppDomain.CurrentDomain.FriendlyName.Contains("vshost");
