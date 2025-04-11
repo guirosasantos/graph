@@ -82,6 +82,7 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("9 - Obter peso da aresta");
     Console.WriteLine("10 - Obter nós adjacentes");
     Console.WriteLine("11 - Imprimir grafo");
+    Console.WriteLine("12 - Ler grafo de arquivo");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
 }
@@ -589,10 +590,17 @@ static async Task<Graph> ReadGraphFromFileAsync()
 
 static string GetFilePath(bool isDirected, bool isWeighted)
 {
-    var filePath = "../../../../Files/";
+    var currentDirectory = Directory.GetCurrentDirectory();
+    var projectDirectory = Directory.GetParent(currentDirectory)?.Parent?.Parent?.FullName!;
+    var filesDirectory = Path.Combine(projectDirectory, "Files");
+    
+    filesDirectory = isDirected
+        ? Path.Combine(filesDirectory, "Direcionado")
+        : Path.Combine(filesDirectory, "NaoDirecionado");
 
-    filePath += isDirected ? "Direcionado/" : "NaoDirecionado/";
-    filePath += isWeighted ? "Ponderado.csv" : "NaoPonderado.csv";
+    var filePath = isWeighted
+        ? $"{filesDirectory}\\\\Ponderado.csv"
+        : $"{filesDirectory}\\\\NaoPonderado.csv";
 
     if (!File.Exists(filePath))
     {

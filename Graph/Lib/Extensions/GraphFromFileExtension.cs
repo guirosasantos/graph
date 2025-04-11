@@ -22,6 +22,8 @@ public static class GraphFromFileExtension
 
         foreach (var (originNode, destinationNode, weight) in edges)
             graph.AddEdge(originNode, destinationNode, weight);
+
+        return graph;
     }
 
     private static List<string> GetNodes(string[] lines, int numberOfNodes)
@@ -42,6 +44,16 @@ public static class GraphFromFileExtension
     private static List<(int originNode, int destinationNode, int weight)> GetEdges(string[] lines, int numberOfNodes,
         int numberOfEdges, bool isWeighted)
     {
+        var edges = new List<(int originNode, int destinationNode, int weight)>();
+        for (int i = numberOfNodes + 1; i <= numberOfEdges + numberOfNodes; i++)
+        {
+            var splitedLine = lines[i].Split(',');
+            var originNode = int.Parse(splitedLine[0]);
+            var destinationNode = int.Parse(splitedLine[1]);
+            var weight = isWeighted ? int.Parse(splitedLine[2]) : 1;
+            edges.Add((originNode, destinationNode, weight));
+        }
 
+        return edges;
     }
 }
