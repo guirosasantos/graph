@@ -382,7 +382,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         }
 
         var originNode = GetNode(origin);
-        var visited = new HashSet<Node>();
+        var visited = new List<Node>();
         var stack = new Stack<Node>();
         stack.Push(originNode);
 
@@ -478,8 +478,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             Console.WriteLine("O nó de origem não existe no grafo.");
             return;
         }
-
-        // Verificar se há pesos negativos no grafo
+        
         var hasNegativeWeights = GraphType switch
         {
             GraphType.AdjacentList => AdjacentList.Any(node => node.IndexNode.Edges.Any(edge => edge.Weight < 0)),
@@ -503,7 +502,6 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         var originNode = GetNode(origin);
 
-        // Inicializar todos os vértices
         foreach (var node in GraphType == GraphType.AdjacentList
             ? AdjacentList.Select(n => n.IndexNode)
             : AdjacentMatrix.Select(n => n.OriginNode))
@@ -517,11 +515,9 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         while (priorityQueue.Count > 0)
         {
-            // Obter o nó com a menor distância
             var (currentDistance, currentNode) = priorityQueue.Min;
             priorityQueue.Remove(priorityQueue.Min);
-
-            // Para cada vizinho do nó atual
+            
             var neighbors = GraphType switch
             {
                 GraphType.AdjacentList => currentNode.Edges,
@@ -542,7 +538,6 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
                 if (newDistance < distances[neighbor])
                 {
-                    // Atualizar a distância e o vértice anterior
                     priorityQueue.Remove((distances[neighbor], neighbor));
                     distances[neighbor] = newDistance;
                     previous[neighbor] = currentNode;
@@ -550,8 +545,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 }
             }
         }
-
-        // Imprimir os resultados
+        
         Console.WriteLine("Menores distâncias a partir do nó de origem:");
         foreach (var node in distances.Keys)
         {
