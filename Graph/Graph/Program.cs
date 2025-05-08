@@ -526,7 +526,7 @@ static void GetEdgeWeight(Graph? graph)
         return;
     }
 
-    int weight = graph.GetEdgeWeight(origin, destination);
+    float weight = graph.GetEdgeWeight(origin, destination);
     if (weight == -1)
         Console.WriteLine($"Erro: Não foi possível obter o peso da aresta de {origin} para {destination}.");
     else
@@ -641,7 +641,7 @@ static string GetFilePath()
     var currentDirectory = Directory.GetCurrentDirectory();
     var projectDirectory = GetProjectDirectory(currentDirectory);
 
-    var filePath = $"{projectDirectory}\\Grafo.csv";
+    var filePath = $"{projectDirectory}/Grafo.txt";
 
     if (!File.Exists(filePath))
     {

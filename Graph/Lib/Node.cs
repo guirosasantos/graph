@@ -5,7 +5,7 @@ public sealed class Node(string label)
     public string Label { get; init; } = label;
     public List<Edge> Edges { get; private set; } = [];
 
-    public bool AddEdge(Node to, int weight)
+    public bool AddEdge(Node to, float weight)
     {
         if (Edges.Any(edge => edge.To == to))
             return false;

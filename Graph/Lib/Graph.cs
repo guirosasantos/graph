@@ -1,6 +1,4 @@
-using System.Globalization;
 using Lib.Enuns;
-using Lib.Extensions;
 using Lib.RepresentationTypes;
 
 namespace Lib;
@@ -219,7 +217,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         }
     }
 
-    public bool AddEdge(int origin, int destination, int weight = 1)
+    public bool AddEdge(int origin, int destination, float weight = 1)
     {
         if (IsWeighted && weight == 0)
             return false;
@@ -254,7 +252,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         };
     }
 
-    private bool AddEdgeToGraph(Node originNode, Node destinationNode, int weight)
+    private bool AddEdgeToGraph(Node originNode, Node destinationNode, float weight)
         => IsDirected
             ? originNode.AddEdge(destinationNode, weight)
             : originNode.AddEdge(destinationNode, weight) && destinationNode.AddEdge(originNode, weight);
@@ -347,7 +345,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         return GetNode(origin).Edges.Any(edge => edge.To.Label == LabelNode(destination));
     }
 
-    public int GetEdgeWeight(int origin, int destination)
+    public float GetEdgeWeight(int origin, int destination)
     {
         if (!GraphAlreadyHasNode(origin, out _) || !GraphAlreadyHasNode(destination, out _))
             return -1;
@@ -437,7 +435,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         {
             var currentNode = auxiliaryQueue.Dequeue();
 
-            var currentNodeIndex = GraphFromFileExtension.GetIndex(currentNode.Label);
+            var currentNodeIndex = GetNodeIndexByLabel(currentNode.Label);
 
             var adjacentNodes = GetAdjacentNodes(currentNodeIndex).OrderBy(node => node.Label);
 
@@ -478,7 +476,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             Console.WriteLine("O nó de origem não existe no grafo.");
             return;
         }
-        
+
         var hasNegativeWeights = GraphType switch
         {
             GraphType.AdjacentList => AdjacentList.Any(node => node.IndexNode.Edges.Any(edge => edge.Weight < 0)),
@@ -492,9 +490,9 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             return;
         }
 
-        var distances = new Dictionary<Node, int>();
+        var distances = new Dictionary<Node, float>();
         var previous = new Dictionary<Node, Node?>();
-        var priorityQueue = new SortedSet<(int Distance, Node Node)>(Comparer<(int, Node)>.Create((a, b) =>
+        var priorityQueue = new SortedSet<(float Distance, Node Node)>(Comparer<(float, Node)>.Create((a, b) =>
         {
             int compare = a.Item1.CompareTo(b.Item1);
             return compare == 0 ? string.Compare(a.Item2.Label, b.Item2.Label, StringComparison.Ordinal) : compare;
@@ -517,7 +515,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         {
             var (currentDistance, currentNode) = priorityQueue.Min;
             priorityQueue.Remove(priorityQueue.Min);
-            
+
             var neighbors = GraphType switch
             {
                 GraphType.AdjacentList => currentNode.Edges,
@@ -545,7 +543,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 }
             }
         }
-        
+
         Console.WriteLine("Menores distâncias a partir do nó de origem:");
         foreach (var node in distances.Keys)
         {
@@ -561,4 +559,15 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             Console.WriteLine($"Nó: {node.Label}, Distância: {distances[node]}, Caminho: {string.Join(" -> ", path)}");
         }
     }
+
+    internal int GetNodeIndexByLabel(string label)
+    {
+        return GraphType switch
+        {
+            GraphType.AdjacentList => AdjacentList.FindIndex(node => node.IndexNode.Label == label),
+            GraphType.Matrix => AdjacentMatrix.FindIndex(node => node.OriginNode.Label == label),
+            _ => throw new NotImplementedException("Graph type not supported")
+        };
+    }
+
 }

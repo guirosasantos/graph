@@ -1,27 +1,27 @@
-using System.Threading.Tasks;
+using System.Text.RegularExpressions;
 using Lib.Enuns;
 
 namespace Lib.Extensions;
 
-public static class GraphFromFileExtension
+public static partial class GraphFromFileExtension
 {
     public static async Task<Graph> FromFileAsync(string filePath, GraphType graphType)
     {
         var lines = await File.ReadAllLinesAsync(filePath);
-        var firstLine = lines[0].Split(',');
-        var numberOfNodes = int.Parse(firstLine[0]);
+        var firstLine = lines[0].Split(' ');
+        var numberOfLines = lines.Length;
         var numberOfEdges = int.Parse(firstLine[1]);
         var isDirected = ConvertToBoolean(firstLine[2]);
         var isWeighted = ConvertToBoolean(firstLine[3]);
 
         var graph = new Graph(isDirected, isWeighted, graphType);
 
-        var nodes = GetNodes(lines, numberOfNodes);
+        var nodes = GetNodes(lines, numberOfLines);
 
         foreach (var node in nodes)
             graph.InsertNode(node);
 
-        var edges = GetEdges(lines, numberOfEdges, isWeighted);
+        var edges = GetEdges(lines, numberOfEdges, isWeighted, graph);
 
         foreach (var (originNode, destinationNode, weight) in edges)
             graph.AddEdge(originNode, destinationNode, weight);
@@ -37,66 +37,55 @@ public static class GraphFromFileExtension
             _ => throw new ArgumentException("Invalid value for boolean conversion")
         };
 
-    private static List<string> GetNodes(string[] lines, int numberOfNodes)
+    private static List<string> GetNodes(string[] lines, int numberOfLines)
     {
         var nodes = new List<string>();
-        for (int i = 1; i <= numberOfNodes; i++)
+        for (int i = 1; i <= numberOfLines-1; i++)
         {
-            var splitedLine = lines[i].Split(',');
+            var splitedLine = lines[i].Split(' ');
             var originNode = splitedLine[0];
             var destinationNode = splitedLine[1];
             nodes.Add(originNode);
             nodes.Add(destinationNode);
         }
 
-        return [.. nodes.Distinct().OrderBy(n => n)];
+        return [.. nodes.Distinct().OrderBy(n =>
+        {
+            var intN = int.Parse(n);
+            return intN;
+        })];
     }
 
-    private static List<(int originNode, int destinationNode, int weight)> GetEdges(string[] lines, int numberOfEdges,
-        bool isWeighted)
+    private static List<(int originNode, int destinationNode, float weight)> GetEdges(string[] lines, int numberOfEdges,
+        bool isWeighted, Graph graph)
     {
-        var edges = new List<(int originNode, int destinationNode, int weight)>();
+        var edges = new List<(int originNode, int destinationNode, float weight)>();
         for (int i = 1; i <= numberOfEdges; i++)
         {
-            var splitedLine = lines[i].Split(',');
-            var originNode = GetIndex(splitedLine[0]);
-            var destinationNode = GetIndex(splitedLine[1]);
-            var weight = isWeighted ? int.Parse(splitedLine[2]) : 1;
+            var splitedLine = lines[i].Split(' ');
+            var originNode = graph.GetNodeIndexByLabel(splitedLine[0]);
+            var destinationNode = graph.GetNodeIndexByLabel(splitedLine[1]);
+            var weight = isWeighted ? ConvertFromLyra(splitedLine[2]) : 1;
             edges.Add((originNode, destinationNode, weight));
         }
 
         return edges;
     }
 
-    public static int GetIndex(string label)
-        => label.ToUpper() switch
-        {
-            "A" => 0,
-            "B" => 1,
-            "C" => 2,
-            "D" => 3,
-            "E" => 4,
-            "F" => 5,
-            "G" => 6,
-            "H" => 7,
-            "I" => 8,
-            "J" => 9,
-            "K" => 10,
-            "L" => 11,
-            "M" => 12,
-            "N" => 13,
-            "O" => 14,
-            "P" => 15,
-            "Q" => 16,
-            "R" => 17,
-            "S" => 18,
-            "T" => 19,
-            "U" => 20,
-            "V" => 21,
-            "W" => 22,
-            "X" => 23,
-            "Y" => 24,
-            "Z" => 25,
-            _ => throw new ArgumentException("Invalid node name")
-        };
+    private static float ConvertFromLyra(string value)
+    {
+        if (!FollowsLyraPattern(value))
+            return float.Parse(value);
+
+        value = value.Replace('.', ',');
+        value = $"0{value}";
+
+        return float.Parse(value);
+    }
+
+    private static bool FollowsLyraPattern(in string value)
+        => LyraPattern().IsMatch(value);
+
+    [GeneratedRegex(@"^\.[0-9]+$")]
+    private static partial Regex LyraPattern();
 }
