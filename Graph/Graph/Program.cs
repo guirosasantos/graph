@@ -59,6 +59,21 @@ while (!exit)
         case 15:
             RunDijkstra(graph);
             break;
+        case 16:
+            ColorGraph(graph);
+            break;
+        case 17:
+            WelshPowellColoring(graph);
+            break;
+        case 18:
+            DSATURColoring(graph);
+            break;
+        case 19:
+            SimpleColoring(graph);
+            break;
+        case 20:
+            CompareColoringAlgorithms(graph);
+            break;
         case 99:
             graph = null;
             break;
@@ -97,6 +112,11 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("13 - Executar busca em profundidade");
     Console.WriteLine("14 - Executar busca em largura");
     Console.WriteLine("15 - Executar algoritmo de Dijkstra");
+    Console.WriteLine("16 - Executar coloração de grafo (força bruta)");
+    Console.WriteLine("17 - Executar coloração Welsh Powell");
+    Console.WriteLine("18 - Executar coloração DSATUR");
+    Console.WriteLine("19 - Executar coloração simples (sem critério de ordem)");
+    Console.WriteLine("20 - Comparar algoritmos de coloração");
     Console.WriteLine("99 - Remover grafo atual");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
@@ -616,6 +636,66 @@ static void RunDijkstra(Graph? graph)
 
     Console.WriteLine("\nExecutando o algoritmo de Dijkstra...");
     graph.Dijkstra(origin);
+}
+
+static void ColorGraph(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando coloração de grafo por força bruta...");
+    var coloring = graph.ColorGraph();
+}
+
+static void WelshPowellColoring(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando coloração de grafo usando Welsh Powell...");
+    var coloring = graph.WelshPowellColoring();
+}
+
+static void DSATURColoring(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando coloração de grafo usando DSATUR...");
+    var coloring = graph.DSATURColoring();
+}
+
+static void SimpleColoring(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando coloração de grafo usando algoritmo simples...");
+    var coloring = graph.SimpleColoring();
+}
+
+static void CompareColoringAlgorithms(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    Console.WriteLine("\nComparando algoritmos de coloração de grafo...");
+    graph.RunAllColoringAlgorithms();
 }
 
 static async Task<Graph> ReadGraphFromFileAsync()

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Lib.Enuns;
 using Lib.RepresentationTypes;
 
@@ -570,4 +571,437 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         };
     }
 
+    public Dictionary<string, int> BruteForceColoring()
+    {
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        var numColors = 2;
+        var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
+
+        if (numVertices == 0)
+            return new Dictionary<string, int>();
+
+        var vertices = GraphType == GraphType.AdjacentList
+            ? AdjacentList.Select(n => n.IndexNode).ToList()
+            : AdjacentMatrix.Select(n => n.OriginNode).ToList();
+
+        while (numColors <= numVertices)
+        {
+            Console.WriteLine($"Tentando com {numColors} cores...");
+
+            // Try all possible colorings with numColors
+            var coloring = new Dictionary<string, int>();
+            foreach (var vertex in vertices)
+            {
+                coloring[vertex.Label] = 1; // Start with all vertices having color 1
+            }
+
+            // Try all combinations
+            bool found = false;
+            bool moreColorings = true;
+
+            while (moreColorings && !found)
+            {
+                // Check if current coloring is valid
+                if (IsValidColoring(coloring))
+                {
+                    found = true;
+                    break;
+                }
+
+                // Get the next coloring
+                moreColorings = NextColoring(coloring, vertices, numColors);
+            }
+
+            if (found)
+            {
+                Console.WriteLine($"Encontrada coloração válida usando {numColors} cores");
+
+                stopWatch.Stop();
+
+                Console.WriteLine($"\n⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+                Console.WriteLine();
+
+                return coloring;
+            }
+
+            // No valid coloring found with this number of colors, increase
+            numColors++;
+        }
+
+        // Should never reach here for simple graphs, but just in case
+        Console.WriteLine("Não foi possível encontrar uma coloração válida");
+        return new Dictionary<string, int>();
+    }
+
+    private bool NextColoring(Dictionary<string, int> coloring, List<Node> vertices, int numColors)
+    {
+        // This is like incrementing a number in base-numColors
+        for (int i = vertices.Count - 1; i >= 0; i--)
+        {
+            string label = vertices[i].Label;
+            coloring[label]++;
+
+            if (coloring[label] <= numColors)
+            {
+                return true; // Successfully moved to next coloring
+            }
+
+            // Overflow, reset this digit and try to increment the next one
+            coloring[label] = 1;
+        }
+
+        // If we get here, we've gone through all colorings
+        return false;
+    }
+
+    private bool IsValidColoring(Dictionary<string, int> coloring)
+    {
+        // Check if any adjacent vertices have the same color
+        if (GraphType == GraphType.AdjacentList)
+        {
+            foreach (var node in AdjacentList)
+            {
+                int color = coloring[node.IndexNode.Label];
+
+                foreach (var adjacentNode in node.AdjacentNodes)
+                {
+                    if (coloring[adjacentNode.Label] == color)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        else // Matrix
+        {
+            for (int i = 0; i < AdjacentMatrix.Count; i++)
+            {
+                int color = coloring[AdjacentMatrix[i].OriginNode.Label];
+
+                for (int j = 0; j < AdjacentMatrix[i].Edges.Count; j++)
+                {
+                    if (AdjacentMatrix[i].Edges[j].IsConnected &&
+                        coloring[AdjacentMatrix[i].Edges[j].DestinationNode.Label] == color)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public void PrintColoring(Dictionary<string, int> coloring, in int verticesCount)
+    {
+        if (coloring == null || coloring.Count == 0)
+        {
+            Console.WriteLine("Nenhuma coloração válida encontrada.");
+            return;
+        }
+
+        if (verticesCount >= 10)
+            return;
+
+        Console.WriteLine("Resultado da coloração do grafo:");
+        foreach (var entry in coloring.OrderBy(e => GetNodeIndexByLabel(e.Key)))
+        {
+            Console.WriteLine($"Nó {entry.Key}: Cor {entry.Value}");
+        }
+    }
+
+    public Dictionary<string, int> ColorGraph()
+    {
+        Console.WriteLine("Aplicando algoritmo de coloração por força bruta...");
+        var coloring = BruteForceColoring();
+        PrintColoring(coloring, GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count);
+        return coloring;
+    }
+
+    // Welsh Powell Algorithm
+    public Dictionary<string, int> WelshPowellColoring()
+    {
+        Console.WriteLine("Aplicando algoritmo de coloração Welsh Powell...");
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
+
+        if (numVertices == 0)
+            return new Dictionary<string, int>();
+
+        // Get vertices
+        var vertices = GraphType == GraphType.AdjacentList
+            ? AdjacentList.Select(n => n.IndexNode).ToList()
+            : AdjacentMatrix.Select(n => n.OriginNode).ToList();
+
+        // Calculate degree of each vertex
+        var degrees = new Dictionary<Node, int>();
+        foreach (var vertex in vertices)
+        {
+            int degree = GraphType == GraphType.AdjacentList
+                ? AdjacentList.First(n => n.IndexNode == vertex).AdjacentNodes.Count
+                : AdjacentMatrix.First(n => n.OriginNode == vertex).Edges.Count(e => e.IsConnected);
+
+            degrees[vertex] = degree;
+        }
+
+        // Sort vertices by degree in descending order
+        var sortedVertices = vertices.OrderByDescending(v => degrees[v]).ToList();
+
+        // Initialize coloring
+        var coloring = new Dictionary<string, int>();
+        foreach (var vertex in vertices)
+        {
+            coloring[vertex.Label] = 0; // 0 means uncolored
+        }
+
+        int currentColor = 1;
+
+        // Color vertices
+        while (coloring.Any(c => c.Value == 0))
+        {
+            // For each uncolored vertex
+            foreach (var vertex in sortedVertices)
+            {
+                if (coloring[vertex.Label] != 0)
+                    continue;
+
+                // Check if we can assign current color
+                bool canAssignColor = true;
+
+                var adjacentNodes = GetAdjacentNodes(GetNodeIndexByLabel(vertex.Label));
+                foreach (var adjNode in adjacentNodes)
+                {
+                    if (coloring.ContainsKey(adjNode.Label) && coloring[adjNode.Label] == currentColor)
+                    {
+                        canAssignColor = false;
+                        break;
+                    }
+                }
+
+                if (canAssignColor)
+                {
+                    coloring[vertex.Label] = currentColor;
+                }
+            }
+
+            currentColor++;
+        }
+
+        stopWatch.Stop();
+
+        int colorsUsed = coloring.Values.Max();
+        Console.WriteLine($"Welsh Powell usou {colorsUsed} cores.");
+        Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+
+        PrintColoring(coloring, numVertices);
+        return coloring;
+    }
+
+    // DSATUR Algorithm
+    public Dictionary<string, int> DSATURColoring()
+    {
+        Console.WriteLine("Aplicando algoritmo de coloração DSATUR...");
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
+
+        if (numVertices == 0)
+            return new Dictionary<string, int>();
+
+        // Get vertices
+        var vertices = GraphType == GraphType.AdjacentList
+            ? AdjacentList.Select(n => n.IndexNode).ToList()
+            : AdjacentMatrix.Select(n => n.OriginNode).ToList();
+
+        // Calculate degree of each vertex
+        var degrees = new Dictionary<Node, int>();
+        foreach (var vertex in vertices)
+        {
+            int degree = GraphType == GraphType.AdjacentList
+                ? AdjacentList.First(n => n.IndexNode == vertex).AdjacentNodes.Count
+                : AdjacentMatrix.First(n => n.OriginNode == vertex).Edges.Count(e => e.IsConnected);
+
+            degrees[vertex] = degree;
+        }
+
+        // Initialize coloring and saturation degrees
+        var coloring = new Dictionary<string, int>();
+        var saturationDegree = new Dictionary<string, int>();
+        var colored = new HashSet<string>();
+
+        foreach (var vertex in vertices)
+        {
+            coloring[vertex.Label] = 0; // 0 means uncolored
+            saturationDegree[vertex.Label] = 0;
+        }
+
+        // Find vertex with max degree and color it first
+        var maxDegreeVertex = vertices.OrderByDescending(v => degrees[v]).First();
+        coloring[maxDegreeVertex.Label] = 1;
+        colored.Add(maxDegreeVertex.Label);
+
+        // Update saturation of neighbors
+        UpdateSaturation(maxDegreeVertex, saturationDegree, coloring, 1);
+
+        // Color remaining vertices
+        while (colored.Count < numVertices)
+        {
+            // Find vertex with highest saturation degree
+            Node nextVertex = null;
+            int maxSaturation = -1;
+            int maxDegree = -1;
+
+            foreach (var vertex in vertices)
+            {
+                if (colored.Contains(vertex.Label))
+                    continue;
+
+                int sat = saturationDegree[vertex.Label];
+                int deg = degrees[vertex];
+
+                if (sat > maxSaturation || (sat == maxSaturation && deg > maxDegree))
+                {
+                    maxSaturation = sat;
+                    maxDegree = deg;
+                    nextVertex = vertex;
+                }
+            }
+
+            // Assign color to selected vertex
+            int color = GetFirstAvailableColor(nextVertex, coloring);
+            coloring[nextVertex.Label] = color;
+            colored.Add(nextVertex.Label);
+
+            // Update saturation of neighbors
+            UpdateSaturation(nextVertex, saturationDegree, coloring, color);
+        }
+
+        stopWatch.Stop();
+
+        int colorsUsed = coloring.Values.Max();
+        Console.WriteLine($"DSATUR usou {colorsUsed} cores.");
+        Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+
+        PrintColoring(coloring, numVertices);
+        return coloring;
+    }
+
+    private void UpdateSaturation(Node vertex, Dictionary<string, int> saturationDegree,
+                                 Dictionary<string, int> coloring, int color)
+    {
+        var adjacentNodes = GetAdjacentNodes(GetNodeIndexByLabel(vertex.Label));
+
+        foreach (var adjNode in adjacentNodes)
+        {
+            if (coloring[adjNode.Label] == 0) // If uncolored
+            {
+                // Check if this color is already counted in saturation
+                var adjAdjNodes = GetAdjacentNodes(GetNodeIndexByLabel(adjNode.Label));
+                bool alreadyCounted = adjAdjNodes.Any(n => coloring.ContainsKey(n.Label) && coloring[n.Label] == color);
+
+                if (!alreadyCounted)
+                {
+                    saturationDegree[adjNode.Label]++;
+                }
+            }
+        }
+    }
+
+    private int GetFirstAvailableColor(Node vertex, Dictionary<string, int> coloring)
+    {
+        var adjacentNodes = GetAdjacentNodes(GetNodeIndexByLabel(vertex.Label));
+
+        var usedColors = new HashSet<int>();
+
+        foreach (var adjNode in adjacentNodes)
+        {
+            if (coloring.ContainsKey(adjNode.Label) && coloring[adjNode.Label] > 0)
+                usedColors.Add(coloring[adjNode.Label]);
+        }
+
+        var color = 1;
+
+        while (usedColors.Contains(color))
+            color++;
+
+        return color;
+    }
+
+    // Simple coloring algorithm with arbitrary ordering
+    public Dictionary<string, int> SimpleColoring()
+    {
+        Console.WriteLine("Aplicando algoritmo de coloração simples (sem critério de ordem)...");
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
+
+        if (numVertices == 0)
+            return new Dictionary<string, int>();
+
+        // Get vertices (using original order)
+        var vertices = GraphType == GraphType.AdjacentList
+            ? AdjacentList.Select(n => n.IndexNode).ToList()
+            : AdjacentMatrix.Select(n => n.OriginNode).ToList();
+
+        // Initialize coloring
+        var coloring = new Dictionary<string, int>();
+
+        foreach (var vertex in vertices)
+            coloring[vertex.Label] = 0;
+
+        // Color vertices in arbitrary order (original order)
+        foreach (var vertex in vertices)
+        {
+            // Find first available color
+            int color = GetFirstAvailableColor(vertex, coloring);
+            coloring[vertex.Label] = color;
+        }
+
+        stopWatch.Stop();
+
+        int colorsUsed = coloring.Values.Max();
+        Console.WriteLine($"Coloração simples usou {colorsUsed} cores.");
+        Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+
+        PrintColoring(coloring, numVertices);
+        return coloring;
+    }
+
+    public void RunAllColoringAlgorithms()
+    {
+        Console.WriteLine("\n=== COMPARAÇÃO DE ALGORITMOS DE COLORAÇÃO ===\n");
+
+        Console.WriteLine("1. Coloração por Força Bruta");
+        var bruteForceTiming = MeasureExecutionTime(() => ColorGraph());
+
+        Console.WriteLine("\n2. Coloração Welsh Powell");
+        var welshPowellTiming = MeasureExecutionTime(() => WelshPowellColoring());
+
+        Console.WriteLine("\n3. Coloração DSATUR");
+        var dsaturTiming = MeasureExecutionTime(() => DSATURColoring());
+
+        Console.WriteLine("\n4. Coloração Simples (sem critério de ordem)");
+        var simpleTiming = MeasureExecutionTime(() => SimpleColoring());
+
+        Console.WriteLine("\n=== RESUMO DE TEMPOS DE EXECUÇÃO ===");
+        Console.WriteLine($"Força Bruta: {bruteForceTiming} ms");
+        Console.WriteLine($"Welsh Powell: {welshPowellTiming} ms");
+        Console.WriteLine($"DSATUR: {dsaturTiming} ms");
+        Console.WriteLine($"Coloração Simples: {simpleTiming} ms");
+    }
+
+    private long MeasureExecutionTime(Func<Dictionary<string, int>> coloringAlgorithm)
+    {
+        var stopwatch = new Stopwatch();
+        stopwatch.Start();
+        coloringAlgorithm();
+        stopwatch.Stop();
+        return stopwatch.ElapsedMilliseconds;
+    }
 }
