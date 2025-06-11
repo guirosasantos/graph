@@ -571,94 +571,98 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         };
     }
 
+    private int GetNumOfVertices()
+    {
+        return GraphType switch
+        {
+            GraphType.AdjacentList => AdjacentList.Count,
+            GraphType.Matrix => AdjacentMatrix.Count,
+            _ => throw new NotImplementedException("Graph type not supported")
+        };
+    }
+
+    private List<Node> GetVertices()
+    {
+        return GraphType switch
+        {
+            GraphType.AdjacentList => AdjacentList.Select(n => n.IndexNode).ToList(),
+            GraphType.Matrix => AdjacentMatrix.Select(n => n.OriginNode).ToList(),
+            _ => throw new NotImplementedException("Graph type not supported")
+        };
+    }
+
     public Dictionary<string, int> BruteForceColoring()
     {
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
         var numColors = 2;
-        var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
+        var numVertices = GetNumOfVertices();
 
         if (numVertices == 0)
-            return new Dictionary<string, int>();
+            return [];
 
-        var vertices = GraphType == GraphType.AdjacentList
-            ? AdjacentList.Select(n => n.IndexNode).ToList()
-            : AdjacentMatrix.Select(n => n.OriginNode).ToList();
+        var vertices = GetVertices();
 
         while (numColors <= numVertices)
         {
             Console.WriteLine($"Tentando com {numColors} cores...");
 
-            // Try all possible colorings with numColors
             var coloring = new Dictionary<string, int>();
-            foreach (var vertex in vertices)
-            {
-                coloring[vertex.Label] = 1; // Start with all vertices having color 1
-            }
 
-            // Try all combinations
-            bool found = false;
-            bool moreColorings = true;
+            foreach (var vertex in vertices)
+                coloring[vertex.Label] = 1;
+
+            var found = false;
+            var moreColorings = true;
 
             while (moreColorings && !found)
             {
-                // Check if current coloring is valid
                 if (IsValidColoring(coloring))
                 {
                     found = true;
                     break;
                 }
 
-                // Get the next coloring
                 moreColorings = NextColoring(coloring, vertices, numColors);
             }
 
             if (found)
             {
-                Console.WriteLine($"Encontrada coloração válida usando {numColors} cores");
-
                 stopWatch.Stop();
 
+                Console.WriteLine($"Encontrada coloração válida usando {numColors} cores");
                 Console.WriteLine($"\n⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
                 Console.WriteLine();
 
                 return coloring;
             }
 
-            // No valid coloring found with this number of colors, increase
             numColors++;
         }
 
-        // Should never reach here for simple graphs, but just in case
         Console.WriteLine("Não foi possível encontrar uma coloração válida");
-        return new Dictionary<string, int>();
+        return [];
     }
 
     private bool NextColoring(Dictionary<string, int> coloring, List<Node> vertices, int numColors)
     {
-        // This is like incrementing a number in base-numColors
         for (int i = vertices.Count - 1; i >= 0; i--)
         {
-            string label = vertices[i].Label;
+            var label = vertices[i].Label;
             coloring[label]++;
 
             if (coloring[label] <= numColors)
-            {
-                return true; // Successfully moved to next coloring
-            }
+                return true;
 
-            // Overflow, reset this digit and try to increment the next one
             coloring[label] = 1;
         }
 
-        // If we get here, we've gone through all colorings
         return false;
     }
 
     private bool IsValidColoring(Dictionary<string, int> coloring)
     {
-        // Check if any adjacent vertices have the same color
         if (GraphType == GraphType.AdjacentList)
         {
             foreach (var node in AdjacentList)
@@ -668,13 +672,11 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 foreach (var adjacentNode in node.AdjacentNodes)
                 {
                     if (coloring[adjacentNode.Label] == color)
-                    {
                         return false;
-                    }
                 }
             }
         }
-        else // Matrix
+        else
         {
             for (int i = 0; i < AdjacentMatrix.Count; i++)
             {
@@ -715,12 +717,12 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
     public Dictionary<string, int> ColorGraph()
     {
         Console.WriteLine("Aplicando algoritmo de coloração por força bruta...");
+
         var coloring = BruteForceColoring();
         PrintColoring(coloring, GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count);
         return coloring;
     }
 
-    // Welsh Powell Algorithm
     public Dictionary<string, int> WelshPowellColoring()
     {
         Console.WriteLine("Aplicando algoritmo de coloração Welsh Powell...");
@@ -730,15 +732,12 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
 
         if (numVertices == 0)
-            return new Dictionary<string, int>();
+            return [];
 
-        // Get vertices
-        var vertices = GraphType == GraphType.AdjacentList
-            ? AdjacentList.Select(n => n.IndexNode).ToList()
-            : AdjacentMatrix.Select(n => n.OriginNode).ToList();
+        var vertices = GetVertices();
 
-        // Calculate degree of each vertex
         var degrees = new Dictionary<Node, int>();
+
         foreach (var vertex in vertices)
         {
             int degree = GraphType == GraphType.AdjacentList
@@ -748,30 +747,26 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             degrees[vertex] = degree;
         }
 
-        // Sort vertices by degree in descending order
         var sortedVertices = vertices.OrderByDescending(v => degrees[v]).ToList();
 
-        // Initialize coloring
         var coloring = new Dictionary<string, int>();
+
         foreach (var vertex in vertices)
-        {
-            coloring[vertex.Label] = 0; // 0 means uncolored
-        }
+            coloring[vertex.Label] = 0;
 
         int currentColor = 1;
 
-        // Color vertices
-        while (coloring.Any(c => c.Value == 0))
+        while (coloring.Any(c => c.Value == 0))  // Enquanto existir um vértice sem cor no grafo
         {
-            // For each uncolored vertex
+            // Para cada vértice do grafo sem cor (seguindo a lista ordenada)
             foreach (var vertex in sortedVertices)
             {
-                if (coloring[vertex.Label] != 0)
+                if (coloring[vertex.Label] != 0)  // Pula vértices já coloridos
                     continue;
 
-                // Check if we can assign current color
-                bool canAssignColor = true;
+                var canAssignColor = true;
 
+                // Verifica se algum adjacente já tem a cor atual
                 var adjacentNodes = GetAdjacentNodes(GetNodeIndexByLabel(vertex.Label));
                 foreach (var adjNode in adjacentNodes)
                 {
@@ -782,13 +777,14 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                     }
                 }
 
+                // Atribuir a cor atual caso não tenha vértice adjacente com a mesma cor
                 if (canAssignColor)
                 {
                     coloring[vertex.Label] = currentColor;
                 }
             }
 
-            currentColor++;
+            currentColor++;  // Define a próxima cor não utilizada
         }
 
         stopWatch.Stop();
@@ -808,17 +804,13 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
-
+        var numVertices = GetNumOfVertices();
         if (numVertices == 0)
-            return new Dictionary<string, int>();
+            return [];
 
-        // Get vertices
-        var vertices = GraphType == GraphType.AdjacentList
-            ? AdjacentList.Select(n => n.IndexNode).ToList()
-            : AdjacentMatrix.Select(n => n.OriginNode).ToList();
+        var vertices = GetVertices();
 
-        // Calculate degree of each vertex
+        // 1. Ordenar os vértices pelo seu grau em ordem decrescente
         var degrees = new Dictionary<Node, int>();
         foreach (var vertex in vertices)
         {
@@ -829,29 +821,30 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             degrees[vertex] = degree;
         }
 
-        // Initialize coloring and saturation degrees
+        // 2 e 3. Criar vetor de cores e inicializar todos os vértices como "sem cor"
         var coloring = new Dictionary<string, int>();
         var saturationDegree = new Dictionary<string, int>();
         var colored = new HashSet<string>();
 
         foreach (var vertex in vertices)
         {
-            coloring[vertex.Label] = 0; // 0 means uncolored
+            coloring[vertex.Label] = 0; // 0 significa "sem cor"
             saturationDegree[vertex.Label] = 0;
         }
 
-        // Find vertex with max degree and color it first
+        // 4. Colorir o vértice com maior grau com a primeira cor
         var maxDegreeVertex = vertices.OrderByDescending(v => degrees[v]).First();
         coloring[maxDegreeVertex.Label] = 1;
         colored.Add(maxDegreeVertex.Label);
 
-        // Update saturation of neighbors
+        // Atualizar saturação dos vizinhos após colorir o primeiro vértice
         UpdateSaturation(maxDegreeVertex, saturationDegree, coloring, 1);
 
-        // Color remaining vertices
+        // 5. Enquanto existir um vértice sem cor no grafo
         while (colored.Count < numVertices)
         {
-            // Find vertex with highest saturation degree
+            // Selecionar o vértice com maior grau de saturação
+            // Em caso de empate, escolher o com maior grau dentre os de maior saturação
             Node nextVertex = null;
             int maxSaturation = -1;
             int maxDegree = -1;
@@ -872,21 +865,20 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 }
             }
 
-            // Assign color to selected vertex
+            // Atribuir para este vértice a primeira cor que não esteja em um vértice adjacente
             int color = GetFirstAvailableColor(nextVertex, coloring);
             coloring[nextVertex.Label] = color;
             colored.Add(nextVertex.Label);
 
-            // Update saturation of neighbors
+            // Atualizar saturação dos vizinhos
             UpdateSaturation(nextVertex, saturationDegree, coloring, color);
         }
 
+        // Código para exibir resultados
         stopWatch.Stop();
-
         int colorsUsed = coloring.Values.Max();
         Console.WriteLine($"DSATUR usou {colorsUsed} cores.");
         Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
-
         PrintColoring(coloring, numVertices);
         return coloring;
     }
@@ -898,9 +890,8 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         foreach (var adjNode in adjacentNodes)
         {
-            if (coloring[adjNode.Label] == 0) // If uncolored
+            if (coloring[adjNode.Label] == 0)
             {
-                // Check if this color is already counted in saturation
                 var adjAdjNodes = GetAdjacentNodes(GetNodeIndexByLabel(adjNode.Label));
                 bool alreadyCounted = adjAdjNodes.Any(n => coloring.ContainsKey(n.Label) && coloring[n.Label] == color);
 
@@ -932,33 +923,28 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         return color;
     }
 
-    // Simple coloring algorithm with arbitrary ordering
     public Dictionary<string, int> SimpleColoring()
     {
         Console.WriteLine("Aplicando algoritmo de coloração simples (sem critério de ordem)...");
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        var numVertices = GraphType == GraphType.AdjacentList ? AdjacentList.Count : AdjacentMatrix.Count;
+        var numVertices = GetNumOfVertices();
 
         if (numVertices == 0)
-            return new Dictionary<string, int>();
+            return [];
 
-        // Get vertices (using original order)
         var vertices = GraphType == GraphType.AdjacentList
             ? AdjacentList.Select(n => n.IndexNode).ToList()
             : AdjacentMatrix.Select(n => n.OriginNode).ToList();
 
-        // Initialize coloring
         var coloring = new Dictionary<string, int>();
 
         foreach (var vertex in vertices)
             coloring[vertex.Label] = 0;
 
-        // Color vertices in arbitrary order (original order)
         foreach (var vertex in vertices)
         {
-            // Find first available color
             int color = GetFirstAvailableColor(vertex, coloring);
             coloring[vertex.Label] = color;
         }

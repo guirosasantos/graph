@@ -647,7 +647,7 @@ static void ColorGraph(Graph? graph)
     }
 
     Console.WriteLine("\nExecutando coloração de grafo por força bruta...");
-    var coloring = graph.ColorGraph();
+    graph.ColorGraph();
 }
 
 static void WelshPowellColoring(Graph? graph)
@@ -659,7 +659,7 @@ static void WelshPowellColoring(Graph? graph)
     }
 
     Console.WriteLine("\nExecutando coloração de grafo usando Welsh Powell...");
-    var coloring = graph.WelshPowellColoring();
+    graph.WelshPowellColoring();
 }
 
 static void DSATURColoring(Graph? graph)
