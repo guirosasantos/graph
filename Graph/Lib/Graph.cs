@@ -990,4 +990,313 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         stopwatch.Stop();
         return stopwatch.ElapsedMilliseconds;
     }
+
+    public int FordFulkerson(int source, int sink)
+    {
+        Console.WriteLine("Aplicando algoritmo de Ford-Fulkerson para encontrar fluxo máximo...");
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        if (!IsDirected || !IsWeighted)
+        {
+            Console.WriteLine("Erro: O algoritmo Ford-Fulkerson requer um grafo direcionado e ponderado.");
+            return -1;
+        }
+
+        int numVertices = GetNumOfVertices();
+        if (source < 0 || source >= numVertices || sink < 0 || sink >= numVertices)
+        {
+            Console.WriteLine("Erro: Índices de origem ou destino inválidos.");
+            return -1;
+        }
+
+        // Criar um grafo auxiliar (residual)
+        var residualGraph = new Graph(true, true, GraphType);
+
+        // Copiar todos os nós
+        for (int i = 0; i < numVertices; i++)
+        {
+            residualGraph.InsertNode(LabelNode(i));
+        }
+
+        // Copiar todas as arestas com suas capacidades
+        for (int i = 0; i < numVertices; i++)
+        {
+            var adjacentNodes = GetAdjacentNodes(i);
+            foreach (var adjNode in adjacentNodes)
+            {
+                int j = GetNodeIndexByLabel(adjNode.Label);
+                float capacity = GetEdgeWeight(i, j);
+                residualGraph.AddEdge(i, j, capacity);
+            }
+        }
+
+        int maxFlow = 0;  // Inicializar solução S
+        int iterations = 0;
+
+        Console.WriteLine("\nExecutando Ford-Fulkerson...");
+
+        // Enquanto existir caminho aumentante
+        while (true)
+        {
+            iterations++;
+
+            // Encontrar um caminho aumentante de source para sink
+            var path = FindAugmentingPath(residualGraph, source, sink);
+
+            if (path.Count == 0)
+                break;  // Não há mais caminhos aumentantes
+
+            // Encontrar a capacidade mínima no caminho
+            float minCapacity = float.MaxValue;
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                int u = path[i];
+                int v = path[i + 1];
+                float capacity = residualGraph.GetEdgeWeight(u, v);
+                minCapacity = Math.Min(minCapacity, capacity);
+            }
+
+            // Adicionar ao fluxo máximo
+            maxFlow += (int)minCapacity;
+
+            Console.WriteLine($"Iteração {iterations}: Encontrado caminho aumentante com capacidade {minCapacity}. Fluxo atual: {maxFlow}");
+
+            // Apresentar o caminho
+            Console.Write($"Caminho: {source}");
+
+            for (int i = 1; i < path.Count; i++)
+                Console.Write($" -> {path[i]}");
+
+            Console.WriteLine();
+
+            // Atualizar capacidades residuais
+            for (int i = 0; i < path.Count - 1; i++)
+            {
+                int u = path[i];
+                int v = path[i + 1];
+
+                // Atualizar aresta direta (u,v)
+                float forwardCapacity = residualGraph.GetEdgeWeight(u, v);
+                residualGraph.RemoveEdge(u, v);
+
+                if (forwardCapacity > minCapacity)
+                    residualGraph.AddEdge(u, v, forwardCapacity - minCapacity);
+
+                // Atualizar aresta reversa (v,u)
+                var backwardExists = residualGraph.DoesEdgeExist(v, u);
+                float backwardCapacity = backwardExists ? residualGraph.GetEdgeWeight(v, u) : 0;
+
+                if (backwardExists)
+                {
+                    residualGraph.RemoveEdge(v, u);
+                    residualGraph.AddEdge(v, u, backwardCapacity + minCapacity);
+                }
+                else
+                {
+                    // Criar aresta reversa se não existir
+                    residualGraph.AddEdge(v, u, minCapacity);
+                }
+            }
+        }
+
+        stopWatch.Stop();
+        Console.WriteLine($"\nFluxo máximo encontrado: {maxFlow}");
+        Console.WriteLine($"Total de iterações: {iterations}");
+        Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+
+        return maxFlow;
+    }
+
+    private static List<int> FindAugmentingPath(Graph residualGraph, int source, int sink)
+    {
+        int numVertices = residualGraph.GetNumOfVertices();
+        var visited = new bool[numVertices];
+        var parent = new int[numVertices];
+
+        for (int i = 0; i < numVertices; i++)
+            parent[i] = -1;
+
+        // Usar uma pilha para DFS
+        var stack = new Stack<int>();
+        stack.Push(source);
+        visited[source] = true;
+
+        while (stack.Count > 0 && !visited[sink])
+        {
+            int u = stack.Pop();
+
+            var adjacentNodes = residualGraph.GetAdjacentNodes(u);
+            foreach (var adjNode in adjacentNodes)
+            {
+                int v = residualGraph.GetNodeIndexByLabel(adjNode.Label);
+                float capacity = residualGraph.GetEdgeWeight(u, v);
+
+                // Ignorar arestas com capacidade zero
+                if (!visited[v] && capacity > 0)
+                {
+                    parent[v] = u;
+                    visited[v] = true;
+                    stack.Push(v);
+
+                    if (v == sink)
+                        break;
+                }
+            }
+        }
+
+        // Se não conseguimos chegar ao destino, retornar caminho vazio
+        if (parent[sink] == -1)
+            return [];
+
+        // Reconstruir o caminho
+        var path = new List<int>();
+
+        for (int v = sink; v != source; v = parent[v])
+            path.Add(v);
+
+        path.Add(source);
+        path.Reverse();
+
+        return path;
+    }
+
+    public void OptimizeMaxFlowWithLocalSearch(int source, int sink)
+    {
+        Console.WriteLine("Aplicando busca local para otimizar fluxo máximo...");
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        if (!IsDirected || !IsWeighted)
+        {
+            Console.WriteLine("Erro: A otimização de fluxo máximo requer um grafo direcionado e ponderado.");
+            return;
+        }
+
+        int numVertices = GetNumOfVertices();
+        if (source < 0 || source >= numVertices || sink < 0 || sink >= numVertices)
+        {
+            Console.WriteLine("Erro: Índices de origem ou destino inválidos.");
+            return;
+        }
+
+        // Calcular fluxo máximo da solução inicial
+        int initialMaxFlow = FordFulkerson(source, sink);
+        Console.WriteLine($"\nFluxo máximo da solução inicial: {initialMaxFlow}");
+
+        // Criar uma cópia do grafo para trabalhar
+        var workingGraph = CreateGraphCopy();
+        int currentMaxFlow = initialMaxFlow;
+        int bestMaxFlow = initialMaxFlow;
+        int steps = 0;
+        bool improvement = true;
+
+        Console.WriteLine("\nIniciando busca local...");
+
+        while (improvement)
+        {
+            improvement = false;
+            var edges = GetAllEdges();
+
+            foreach (var edge in edges)
+            {
+                steps++;
+                
+                // Criar solução vizinha: inverter direção da aresta
+                var neighborGraph = CreateNeighborSolution(workingGraph, edge.origin, edge.destination, edge.weight);
+                
+                // Calcular fluxo máximo da solução vizinha
+                int neighborMaxFlow = neighborGraph.FordFulkerson(source, sink);
+                
+                Console.WriteLine($"Passo {steps}: Invertendo aresta {edge.origin}->{edge.destination}, Fluxo: {neighborMaxFlow}");
+
+                // Se a solução vizinha é melhor, aceitar
+                if (neighborMaxFlow > bestMaxFlow)
+                {
+                    bestMaxFlow = neighborMaxFlow;
+                    workingGraph = neighborGraph;
+                    improvement = true;
+                    Console.WriteLine($"   ✓ Melhoria encontrada! Novo melhor fluxo: {bestMaxFlow}");
+                    break; // First improvement strategy
+                }
+            }
+        }
+
+        stopWatch.Stop();
+
+        Console.WriteLine("\n=== RESULTADO DA BUSCA LOCAL ===");
+        Console.WriteLine($"Fluxo máximo da solução inicial: {initialMaxFlow}");
+        Console.WriteLine($"Fluxo máximo da solução final: {bestMaxFlow}");
+        Console.WriteLine($"Melhoria obtida: {bestMaxFlow - initialMaxFlow}");
+        Console.WriteLine($"Número de passos: {steps}");
+        Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+
+        if (bestMaxFlow > initialMaxFlow)
+        {
+            Console.WriteLine("\n✅ A busca local encontrou uma solução melhor!");
+        }
+        else
+        {
+            Console.WriteLine("\n❌ A busca local não encontrou melhorias.");
+        }
+    }
+
+    private Graph CreateGraphCopy()
+    {
+        var copy = new Graph(IsDirected, IsWeighted, GraphType);
+        
+        // Copiar nós
+        int numVertices = GetNumOfVertices();
+        for (int i = 0; i < numVertices; i++)
+        {
+            copy.InsertNode(LabelNode(i));
+        }
+
+        // Copiar arestas
+        for (int i = 0; i < numVertices; i++)
+        {
+            var adjacentNodes = GetAdjacentNodes(i);
+            foreach (var adjNode in adjacentNodes)
+            {
+                int j = GetNodeIndexByLabel(adjNode.Label);
+                float weight = GetEdgeWeight(i, j);
+                copy.AddEdge(i, j, weight);
+            }
+        }
+
+        return copy;
+    }
+
+    private Graph CreateNeighborSolution(Graph originalGraph, int origin, int destination, float weight)
+    {
+        var neighbor = originalGraph.CreateGraphCopy();
+        
+        // Remover aresta original
+        neighbor.RemoveEdge(origin, destination);
+        
+        // Adicionar aresta com direção invertida
+        neighbor.AddEdge(destination, origin, weight);
+        
+        return neighbor;
+    }
+
+    private List<(int origin, int destination, float weight)> GetAllEdges()
+    {
+        var edges = new List<(int origin, int destination, float weight)>();
+        int numVertices = GetNumOfVertices();
+
+        for (int i = 0; i < numVertices; i++)
+        {
+            var adjacentNodes = GetAdjacentNodes(i);
+            foreach (var adjNode in adjacentNodes)
+            {
+                int j = GetNodeIndexByLabel(adjNode.Label);
+                float weight = GetEdgeWeight(i, j);
+                edges.Add((i, j, weight));
+            }
+        }
+
+        return edges;
+    }
+
 }

@@ -74,6 +74,12 @@ while (!exit)
         case 20:
             CompareColoringAlgorithms(graph);
             break;
+        case 21:
+            RunFordFulkerson(graph);
+            break;
+        case 22:
+            OptimizeMaxFlowWithLocalSearch(graph);
+            break;
         case 99:
             graph = null;
             break;
@@ -117,6 +123,8 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("18 - Executar coloração DSATUR");
     Console.WriteLine("19 - Executar coloração simples (sem critério de ordem)");
     Console.WriteLine("20 - Comparar algoritmos de coloração");
+    Console.WriteLine("21 - Executar algoritmo de Ford-Fulkerson");
+    Console.WriteLine("22 - Otimizar fluxo máximo com busca local");
     Console.WriteLine("99 - Remover grafo atual");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
@@ -760,4 +768,72 @@ static void BreadthFirstSearch(Graph graph)
 
     Console.WriteLine("\nExecutando busca em largura...");
     graph.BreadthFirstSearch(origin);
+}
+
+static void OptimizeMaxFlowWithLocalSearch(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    if (!graph.IsDirected || !graph.IsWeighted)
+    {
+        Console.WriteLine("Erro: A otimização de fluxo máximo requer um grafo direcionado e ponderado.");
+        return;
+    }
+
+    Console.Write("\nDigite o índice do nó de origem (source): ");
+    if (!int.TryParse(Console.ReadLine(), out int source))
+    {
+        Console.WriteLine("Erro: Índice de origem inválido.");
+        return;
+    }
+
+    Console.Write("Digite o índice do nó de destino (sink): ");
+    if (!int.TryParse(Console.ReadLine(), out int sink))
+    {
+        Console.WriteLine("Erro: Índice de destino inválido.");
+        return;
+    }
+
+    graph.OptimizeMaxFlowWithLocalSearch(source, sink);
+}
+
+static void RunFordFulkerson(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    if (!graph.IsDirected || !graph.IsWeighted)
+    {
+        Console.WriteLine("Erro: O algoritmo Ford-Fulkerson requer um grafo direcionado e ponderado.");
+        return;
+    }
+
+    Console.Write("\nDigite o índice do nó de origem (source): ");
+    if (!int.TryParse(Console.ReadLine(), out int source))
+    {
+        Console.WriteLine("Erro: Índice de origem inválido.");
+        return;
+    }
+
+    Console.Write("Digite o índice do nó de destino (sink): ");
+    if (!int.TryParse(Console.ReadLine(), out int sink))
+    {
+        Console.WriteLine("Erro: Índice de destino inválido.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando algoritmo de Ford-Fulkerson...");
+    int maxFlow = graph.FordFulkerson(source, sink);
+    
+    if (maxFlow >= 0)
+    {
+        Console.WriteLine($"\nFluxo máximo encontrado: {maxFlow}");
+    }
 }
