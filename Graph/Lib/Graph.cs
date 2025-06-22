@@ -131,6 +131,64 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         });
     }
 
+    private List<int> FindAugmentingPathWithDFS(int source, int sink)
+    {
+        var visited = new List<Node>();
+        var parent = new Dictionary<Node, Node?>();
+        var stack = new Stack<Node>();
+
+        var sourceNode = GetNode(source);
+        var sinkNode = GetNode(sink);
+
+        stack.Push(sourceNode);
+
+        while (stack.Count > 0)
+        {
+            var currentNode = stack.Pop();
+
+            if (visited.Contains(currentNode))
+                continue;
+
+            visited.Add(currentNode);
+
+            if (currentNode == sinkNode)
+                break;
+
+            var currentIndex = GetNodeIndexByLabel(currentNode.Label);
+            var adjacentNodes = GetAdjacentNodes(currentIndex);
+
+            foreach (var adjNode in adjacentNodes)
+            {
+                var adjIndex = GetNodeIndexByLabel(adjNode.Label);
+                var capacity = GetEdgeWeight(currentIndex, adjIndex);
+
+                // Só considerar arestas com capacidade > 0
+                if (!visited.Contains(adjNode) && capacity > 0)
+                {
+                    parent[adjNode] = currentNode;
+                    stack.Push(adjNode);
+                }
+            }
+        }
+
+        // Se não conseguimos chegar ao destino, retornar caminho vazio
+        if (!visited.Contains(sinkNode))
+            return [];
+
+        // Reconstruir o caminho
+        var path = new List<int>();
+        var current = sinkNode;
+
+        while (current != null)
+        {
+            path.Add(GetNodeIndexByLabel(current.Label));
+            parent.TryGetValue(current, out current);
+        }
+
+        path.Reverse();
+        return path;
+    }
+
     private void RemoveNodeFromIndex(string label)
         => AdjacentList.RemoveAll(node => node.IndexNode.Label == label);
 
@@ -997,12 +1055,6 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         var stopWatch = new Stopwatch();
         stopWatch.Start();
 
-        if (!IsDirected || !IsWeighted)
-        {
-            Console.WriteLine("Erro: O algoritmo Ford-Fulkerson requer um grafo direcionado e ponderado.");
-            return -1;
-        }
-
         int numVertices = GetNumOfVertices();
         if (source < 0 || source >= numVertices || sink < 0 || sink >= numVertices)
         {
@@ -1015,9 +1067,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         // Copiar todos os nós
         for (int i = 0; i < numVertices; i++)
-        {
             residualGraph.InsertNode(LabelNode(i));
-        }
 
         // Copiar todas as arestas com suas capacidades
         for (int i = 0; i < numVertices; i++)
@@ -1041,8 +1091,8 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         {
             iterations++;
 
-            // Encontrar um caminho aumentante de source para sink
-            var path = FindAugmentingPath(residualGraph, source, sink);
+            // Encontrar um caminho aumentante de source para sink usando DFS
+            var path = residualGraph.FindAugmentingPathWithDFS(source, sink);
 
             if (path.Count == 0)
                 break;  // Não há mais caminhos aumentantes
@@ -1108,70 +1158,11 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         return maxFlow;
     }
 
-    private static List<int> FindAugmentingPath(Graph residualGraph, int source, int sink)
-    {
-        int numVertices = residualGraph.GetNumOfVertices();
-        var visited = new bool[numVertices];
-        var parent = new int[numVertices];
-
-        for (int i = 0; i < numVertices; i++)
-            parent[i] = -1;
-
-        // Usar uma pilha para DFS
-        var stack = new Stack<int>();
-        stack.Push(source);
-        visited[source] = true;
-
-        while (stack.Count > 0 && !visited[sink])
-        {
-            int u = stack.Pop();
-
-            var adjacentNodes = residualGraph.GetAdjacentNodes(u);
-            foreach (var adjNode in adjacentNodes)
-            {
-                int v = residualGraph.GetNodeIndexByLabel(adjNode.Label);
-                float capacity = residualGraph.GetEdgeWeight(u, v);
-
-                // Ignorar arestas com capacidade zero
-                if (!visited[v] && capacity > 0)
-                {
-                    parent[v] = u;
-                    visited[v] = true;
-                    stack.Push(v);
-
-                    if (v == sink)
-                        break;
-                }
-            }
-        }
-
-        // Se não conseguimos chegar ao destino, retornar caminho vazio
-        if (parent[sink] == -1)
-            return [];
-
-        // Reconstruir o caminho
-        var path = new List<int>();
-
-        for (int v = sink; v != source; v = parent[v])
-            path.Add(v);
-
-        path.Add(source);
-        path.Reverse();
-
-        return path;
-    }
-
     public void OptimizeMaxFlowWithLocalSearch(int source, int sink)
     {
         Console.WriteLine("Aplicando busca local para otimizar fluxo máximo...");
         var stopWatch = new Stopwatch();
         stopWatch.Start();
-
-        if (!IsDirected || !IsWeighted)
-        {
-            Console.WriteLine("Erro: A otimização de fluxo máximo requer um grafo direcionado e ponderado.");
-            return;
-        }
 
         int numVertices = GetNumOfVertices();
         if (source < 0 || source >= numVertices || sink < 0 || sink >= numVertices)
@@ -1186,7 +1177,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         // Criar uma cópia do grafo para trabalhar
         var workingGraph = CreateGraphCopy();
-        int currentMaxFlow = initialMaxFlow;
+
         int bestMaxFlow = initialMaxFlow;
         int steps = 0;
         bool improvement = true;
@@ -1201,13 +1192,13 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
             foreach (var edge in edges)
             {
                 steps++;
-                
+
                 // Criar solução vizinha: inverter direção da aresta
                 var neighborGraph = CreateNeighborSolution(workingGraph, edge.origin, edge.destination, edge.weight);
-                
+
                 // Calcular fluxo máximo da solução vizinha
                 int neighborMaxFlow = neighborGraph.FordFulkerson(source, sink);
-                
+
                 Console.WriteLine($"Passo {steps}: Invertendo aresta {edge.origin}->{edge.destination}, Fluxo: {neighborMaxFlow}");
 
                 // Se a solução vizinha é melhor, aceitar
@@ -1244,7 +1235,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
     private Graph CreateGraphCopy()
     {
         var copy = new Graph(IsDirected, IsWeighted, GraphType);
-        
+
         // Copiar nós
         int numVertices = GetNumOfVertices();
         for (int i = 0; i < numVertices; i++)
@@ -1270,13 +1261,13 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
     private Graph CreateNeighborSolution(Graph originalGraph, int origin, int destination, float weight)
     {
         var neighbor = originalGraph.CreateGraphCopy();
-        
+
         // Remover aresta original
         neighbor.RemoveEdge(origin, destination);
-        
+
         // Adicionar aresta com direção invertida
         neighbor.AddEdge(destination, origin, weight);
-        
+
         return neighbor;
     }
 
