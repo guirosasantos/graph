@@ -80,6 +80,9 @@ while (!exit)
         case 22:
             OptimizeMaxFlowWithLocalSearch(graph);
             break;
+        case 23:
+            RunPrim(graph);
+            break;
         case 99:
             graph = null;
             break;
@@ -125,6 +128,7 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("20 - Comparar algoritmos de coloração");
     Console.WriteLine("21 - Executar algoritmo de Ford-Fulkerson");
     Console.WriteLine("22 - Otimizar fluxo máximo com busca local");
+    Console.WriteLine("23 - Executar algoritmo de Prim (Árvore Geradora Mínima)");
     Console.WriteLine("99 - Remover grafo atual");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
@@ -836,4 +840,22 @@ static void RunFordFulkerson(Graph? graph)
     {
         Console.WriteLine($"\nFluxo máximo encontrado: {maxFlow}");
     }
+}
+
+static void RunPrim(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    if (!graph.IsWeighted)
+    {
+        Console.WriteLine("Erro: O algoritmo de Prim requer um grafo ponderado.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando algoritmo de Prim...");
+    graph.Prim();
 }

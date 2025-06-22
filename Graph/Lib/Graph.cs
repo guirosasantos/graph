@@ -1290,4 +1290,134 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         return edges;
     }
 
+    public void Prim()
+    {
+        Console.WriteLine("Aplicando algoritmo de Prim para árvore geradora mínima...");
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        int numVertices = GetNumOfVertices();
+        if (numVertices == 0)
+        {
+            Console.WriteLine("Erro: O grafo está vazio.");
+            return;
+        }
+
+        if (!IsWeighted)
+        {
+            Console.WriteLine("Erro: O algoritmo de Prim requer um grafo ponderado.");
+            return;
+        }
+
+        // Verificar se há arestas com pesos negativos
+        var hasNegativeWeights = GraphType switch
+        {
+            GraphType.AdjacentList => AdjacentList.Any(node => node.IndexNode.Edges.Any(edge => edge.Weight < 0)),
+            GraphType.Matrix => AdjacentMatrix.Any(node => node.OriginNode.Edges.Any(edge => edge.Weight < 0)),
+            _ => throw new NotImplementedException()
+        };
+
+        if (hasNegativeWeights)
+        {
+            Console.WriteLine("Aviso: O grafo contém arestas com pesos negativos.");
+        }
+
+        // S = conjunto vazio de arestas para a solução
+        var solutionEdges = new List<(Node from, Node to, float weight)>();
+        
+        // Q = conjunto com todos os vértices do grafo para controle
+        var qVertices = new HashSet<Node>(GetVertices());
+        
+        // Escolher vértice arbitrário A como inicial (primeiro vértice)
+        var startVertex = qVertices.First();
+        qVertices.Remove(startVertex);
+
+        Console.WriteLine($"Vértice inicial escolhido: {startVertex.Label}");
+        Console.WriteLine("\nExecutando algoritmo de Prim...");
+
+        float totalWeight = 0;
+        int iteration = 1;
+
+        // Enquanto Q não estiver vazio
+        while (qVertices.Count > 0)
+        {
+            Node? bestU = null;
+            Node? bestV = null;
+            float minWeight = float.MaxValue;
+
+            // Encontrar a menor aresta {u,v} onde um pertence a Q e outro não
+            foreach (var vertex in GetVertices())
+            {
+                // Se o vértice não está em Q (já foi processado)
+                if (!qVertices.Contains(vertex))
+                {
+                    int vertexIndex = GetNodeIndexByLabel(vertex.Label);
+                    var adjacentNodes = GetAdjacentNodes(vertexIndex);
+
+                    foreach (var adjNode in adjacentNodes)
+                    {
+                        // Se o adjacente ainda está em Q
+                        if (qVertices.Contains(adjNode))
+                        {
+                            int adjIndex = GetNodeIndexByLabel(adjNode.Label);
+                            float edgeWeight = GetEdgeWeight(vertexIndex, adjIndex);
+
+                            if (edgeWeight < minWeight)
+                            {
+                                minWeight = edgeWeight;
+                                bestU = vertex;
+                                bestV = adjNode;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Se encontrou uma aresta válida
+            if (bestU != null && bestV != null)
+            {
+                // Adicionar aresta ao conjunto solução S
+                solutionEdges.Add((bestU, bestV, minWeight));
+                totalWeight += minWeight;
+                
+                // Remover do conjunto Q o vértice que pertencia a ele
+                qVertices.Remove(bestV);
+
+                Console.WriteLine($"Iteração {iteration}: Adicionada aresta {bestU.Label} -> {bestV.Label} (peso: {minWeight})");
+                iteration++;
+            }
+            else
+            {
+                Console.WriteLine("Erro: Não foi possível encontrar uma aresta válida. O grafo pode não ser conectado.");
+                break;
+            }
+        }
+
+        stopWatch.Stop();
+
+        // Exibir resultados
+        Console.WriteLine("\n=== RESULTADO DO ALGORITMO DE PRIM ===");
+        Console.WriteLine("Árvore Geradora Mínima encontrada:");
+        
+        foreach (var edge in solutionEdges)
+        {
+            Console.WriteLine($"  {edge.from.Label} -- {edge.to.Label} (peso: {edge.weight})");
+        }
+
+        Console.WriteLine($"\nNúmero total de arestas na solução: {solutionEdges.Count}");
+        Console.WriteLine($"Soma total dos pesos das arestas: {totalWeight}");
+        Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+
+        // Verificar se a solução é válida (deve ter n-1 arestas para n vértices)
+        if (solutionEdges.Count == numVertices - 1)
+        {
+            Console.WriteLine("✅ Árvore geradora mínima encontrada com sucesso!");
+        }
+        else
+        {
+            Console.WriteLine("❌ Atenção: O número de arestas não corresponde a uma árvore geradora válida.");
+            Console.WriteLine("   Isso pode indicar que o grafo não é conectado.");
+        }
+    }
+
 }
