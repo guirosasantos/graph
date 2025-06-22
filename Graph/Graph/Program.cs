@@ -83,6 +83,9 @@ while (!exit)
         case 23:
             RunPrim(graph);
             break;
+        case 24:
+            RunKruskal(graph);
+            break;
         case 99:
             graph = null;
             break;
@@ -129,6 +132,7 @@ static void PrintMenu(Graph? programGraph)
     Console.WriteLine("21 - Executar algoritmo de Ford-Fulkerson");
     Console.WriteLine("22 - Otimizar fluxo máximo com busca local");
     Console.WriteLine("23 - Executar algoritmo de Prim (Árvore Geradora Mínima)");
+    Console.WriteLine("24 - Executar algoritmo de Kruskal (Árvore Geradora Mínima)");
     Console.WriteLine("99 - Remover grafo atual");
     Console.WriteLine("0 - Sair");
     Console.Write("\nEscolha uma opção: ");
@@ -835,7 +839,7 @@ static void RunFordFulkerson(Graph? graph)
 
     Console.WriteLine("\nExecutando algoritmo de Ford-Fulkerson...");
     int maxFlow = graph.FordFulkerson(source, sink);
-    
+
     if (maxFlow >= 0)
     {
         Console.WriteLine($"\nFluxo máximo encontrado: {maxFlow}");
@@ -858,4 +862,28 @@ static void RunPrim(Graph? graph)
 
     Console.WriteLine("\nExecutando algoritmo de Prim...");
     graph.Prim();
+}
+
+static void RunKruskal(Graph? graph)
+{
+    if (graph == null)
+    {
+        Console.WriteLine("Erro: Nenhum grafo foi criado. Crie um grafo primeiro.");
+        return;
+    }
+
+    if (!graph.IsWeighted)
+    {
+        Console.WriteLine("Erro: O algoritmo de Kruskal requer um grafo ponderado.");
+        return;
+    }
+
+    if (graph.IsDirected)
+    {
+        Console.WriteLine("Erro: O algoritmo de Kruskal requer um grafo não direcionado.");
+        return;
+    }
+
+    Console.WriteLine("\nExecutando algoritmo de Kruskal...");
+    graph.Kruskal();
 }

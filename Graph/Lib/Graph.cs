@@ -1324,10 +1324,10 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
 
         // S = conjunto vazio de arestas para a solução
         var solutionEdges = new List<(Node from, Node to, float weight)>();
-        
+
         // Q = conjunto com todos os vértices do grafo para controle
         var qVertices = new HashSet<Node>(GetVertices());
-        
+
         // Escolher vértice arbitrário A como inicial (primeiro vértice)
         var startVertex = qVertices.First();
         qVertices.Remove(startVertex);
@@ -1379,7 +1379,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
                 // Adicionar aresta ao conjunto solução S
                 solutionEdges.Add((bestU, bestV, minWeight));
                 totalWeight += minWeight;
-                
+
                 // Remover do conjunto Q o vértice que pertencia a ele
                 qVertices.Remove(bestV);
 
@@ -1398,7 +1398,7 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         // Exibir resultados
         Console.WriteLine("\n=== RESULTADO DO ALGORITMO DE PRIM ===");
         Console.WriteLine("Árvore Geradora Mínima encontrada:");
-        
+
         foreach (var edge in solutionEdges)
         {
             Console.WriteLine($"  {edge.from.Label} -- {edge.to.Label} (peso: {edge.weight})");
@@ -1420,4 +1420,190 @@ public sealed class Graph(bool isDirected, bool isWeighted, GraphType graphType)
         }
     }
 
+    public void Kruskal()
+    {
+        Console.WriteLine("Aplicando algoritmo de Kruskal para árvore geradora mínima...");
+        var stopWatch = new Stopwatch();
+        stopWatch.Start();
+
+        int numVertices = GetNumOfVertices();
+        if (numVertices == 0)
+        {
+            Console.WriteLine("Erro: O grafo está vazio.");
+            return;
+        }
+
+        if (!IsWeighted)
+        {
+            Console.WriteLine("Erro: O algoritmo de Kruskal requer um grafo ponderado.");
+            return;
+        }
+
+        if (IsDirected)
+        {
+            Console.WriteLine("Erro: O algoritmo de Kruskal requer um grafo não direcionado.");
+            return;
+        }
+
+        // Verificar se há arestas com pesos negativos
+        var hasNegativeWeights = GraphType switch
+        {
+            GraphType.AdjacentList => AdjacentList.Any(node => node.IndexNode.Edges.Any(edge => edge.Weight < 0)),
+            GraphType.Matrix => AdjacentMatrix.Any(node => node.OriginNode.Edges.Any(edge => edge.Weight < 0)),
+            _ => throw new NotImplementedException()
+        };
+
+        if (hasNegativeWeights)
+        {
+            Console.WriteLine("Aviso: O grafo contém arestas com pesos negativos.");
+        }
+
+        // S = conjunto vazio de arestas para a solução
+        var solutionEdges = new List<(int u, int v, string uLabel, string vLabel, float weight)>();
+
+        // Q = conjunto com todas as arestas do grafo para controle
+        var qEdges = GetAllEdgesForKruskal();
+
+        // Ordenar arestas por peso (menor para maior)
+        qEdges.Sort((e1, e2) => e1.weight.CompareTo(e2.weight));
+
+        // F = floresta com cada vértice isolado sendo uma árvore (Union-Find usando arrays)
+        var parent = new int[numVertices];
+        var rank = new int[numVertices];
+
+        // Inicializar cada vértice como sua própria árvore
+        for (int i = 0; i < numVertices; i++)
+        {
+            parent[i] = i;
+            rank[i] = 0;
+        }
+
+        Console.WriteLine($"Total de arestas no grafo: {qEdges.Count}");
+        Console.WriteLine("\nExecutando algoritmo de Kruskal...");
+
+        float totalWeight = 0;
+        int iteration = 1;
+
+        // Enquanto Q não estiver vazio
+        foreach (var edge in qEdges)
+        {
+            // Seleciona a menor aresta {u, v} do conjunto Q
+            // (já ordenado, então pegamos em ordem)
+
+            // Se u e v pertencem a árvores diferentes no conjunto F
+            if (!AreConnected(edge.u, edge.v, parent))
+            {
+                // Adiciona a aresta {u, v} para o conjunto S
+                solutionEdges.Add(edge);
+                totalWeight += edge.weight;
+
+                // Une o conjunto das árvores que contém u e que contém v no conjunto F
+                Union(edge.u, edge.v, parent, rank);
+
+                Console.WriteLine($"Iteração {iteration}: Adicionada aresta {edge.uLabel} -- {edge.vLabel} (peso: {edge.weight})");
+                iteration++;
+
+                // Se já temos n-1 arestas, podemos parar (árvore completa)
+                if (solutionEdges.Count == numVertices - 1)
+                    break;
+            }
+        }
+
+        stopWatch.Stop();
+
+        // Exibir resultados
+        Console.WriteLine("\n=== RESULTADO DO ALGORITMO DE KRUSKAL ===");
+        Console.WriteLine("Árvore Geradora Mínima encontrada:");
+
+        foreach (var edge in solutionEdges)
+        {
+            Console.WriteLine($"  {edge.uLabel} -- {edge.vLabel} (peso: {edge.weight})");
+        }
+
+        Console.WriteLine($"\nNúmero total de arestas na solução: {solutionEdges.Count}");
+        Console.WriteLine($"Soma total dos pesos das arestas: {totalWeight}");
+        Console.WriteLine($"⏰ Tempo de execução: {stopWatch.ElapsedMilliseconds} ms");
+
+        // Verificar se a solução é válida (deve ter n-1 arestas para n vértices)
+        if (solutionEdges.Count == numVertices - 1)
+        {
+            Console.WriteLine("✅ Árvore geradora mínima encontrada com sucesso!");
+        }
+        else
+        {
+            Console.WriteLine("❌ Atenção: O número de arestas não corresponde a uma árvore geradora válida.");
+            Console.WriteLine("   Isso pode indicar que o grafo não é conectado.");
+        }
+    }
+
+    private List<(int u, int v, string uLabel, string vLabel, float weight)> GetAllEdgesForKruskal()
+    {
+        var edges = new List<(int u, int v, string uLabel, string vLabel, float weight)>();
+        var addedEdges = new HashSet<string>(); // Para evitar duplicatas em grafos não direcionados
+        int numVertices = GetNumOfVertices();
+
+        for (int i = 0; i < numVertices; i++)
+        {
+            var adjacentNodes = GetAdjacentNodes(i);
+            foreach (var adjNode in adjacentNodes)
+            {
+                int j = GetNodeIndexByLabel(adjNode.Label);
+
+                // Para grafos não direcionados, evitar arestas duplicadas
+                // Criar uma chave única para a aresta (menor índice primeiro)
+                string edgeKey = i < j ? $"{i}-{j}" : $"{j}-{i}";
+
+                if (!addedEdges.Contains(edgeKey))
+                {
+                    float weight = GetEdgeWeight(i, j);
+                    edges.Add((i, j, LabelNode(i), LabelNode(j), weight));
+                    addedEdges.Add(edgeKey);
+                }
+            }
+        }
+
+        return edges;
+    }
+
+    // Encontrar o representante (raiz) do conjunto que contém x (Union-Find)
+    private int Find(int x, int[] parent)
+    {
+        if (parent[x] != x)
+        {
+            // Compressão de caminho para otimização
+            parent[x] = Find(parent[x], parent);
+        }
+        return parent[x];
+    }
+
+    // Unir os conjuntos que contêm x e y (Union-Find)
+    private void Union(int x, int y, int[] parent, int[] rank)
+    {
+        int rootX = Find(x, parent);
+        int rootY = Find(y, parent);
+
+        if (rootX != rootY)
+        {
+            // União por rank para otimização
+            if (rank[rootX] < rank[rootY])
+            {
+                parent[rootX] = rootY;
+            }
+            else if (rank[rootX] > rank[rootY])
+            {
+                parent[rootY] = rootX;
+            }
+            else
+            {
+                parent[rootY] = rootX;
+                rank[rootX]++;
+            }
+        }
+    }
+
+    // Verificar se x e y estão no mesmo conjunto (conectados) (Union-Find)
+    private bool AreConnected(int x, int y, int[] parent)
+    {
+        return Find(x, parent) == Find(y, parent);
+    }
 }
